@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ronnie Tyler Everage — Game Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a;
+    background: white;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* ===== SUBTLE PARTICLES ===== */
+  .particles-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    background: #9D7FD5;
+    pointer-events: none;
+    opacity: 0;
+    animation: particleFloat linear infinite;
+  }
+  @keyframes particleFloat {
+    0% {
+      transform: translateY(100vh) translateX(0);
+      opacity: 0;
+    }
+    10% { opacity: 0.4; }
+    90% { opacity: 0.4; }
+    100% {
+      transform: translateY(-10vh) translateX(var(--drift, 20px));
+      opacity: 0;
+    }
+  }
+
+  /* ===== CUSTOM CURSOR ===== */
+  .cursor-dot, .cursor-ring {
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9999;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .cursor-dot {
+    width: 6px; height: 6px;
+    background: #9D7FD5;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1.5px solid rgba(157, 127, 213, 0.4);
+    transition: width 0.3s ease, height 0.3s ease, border-color 0.3s ease;
+  }
+  .cursor-ring.hover {
+    width: 60px; height: 60px;
+    border-color: rgba(157, 127, 213, 0.8);
+  }
+  @media (max-width: 768px) {
+    body { cursor: auto; }
+    .cursor-dot, .cursor-ring { display: none; }
+  }
+
+  /* ===== SCROLL PROGRESS ===== */
+  .scroll-progress {
+    position: fixed;
+    top: 0; left: 0;
+    width: 0%;
+    height: 2px;
+    background: linear-gradient(90deg, #9D7FD5, #C4A8FF);
+    z-index: 1000;
+    transition: width 0.1s ease-out;
+  }
+
+  /* ===== SECTION NAV DOTS ===== */
+  .section-nav {
+    position: fixed;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .section-nav a {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(157, 127, 213, 0.25);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    cursor: none;
+  }
+  .section-nav a.active {
+    background: #9D7FD5;
+    transform: scale(1.6);
+    box-shadow: 0 0 0 6px rgba(157, 127, 213, 0.15);
+  }
+  @media (max-width: 768px) {
+    .section-nav { display: none; }
+  }
+
+  .section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+    z-index: 2;
+  }
+  .soft-purple-bg { background-color: #F5EFFF; }
+
+  /* Floating decorative blobs */
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(157, 127, 213, 0.12), transparent 70%);
+    pointer-events: none;
+    animation: float 8s ease-in-out infinite;
+  }
+  .blob-1 { width: 400px; height: 400px; top: -100px; right: -100px; }
+  .blob-2 { width: 300px; height: 300px; bottom: -80px; left: -80px; animation-delay: 2s; }
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(20px, -30px) scale(1.1); }
+  }
+
+  /* ===== ANIMATIONS ===== */
+  .fade-up { opacity: 0; transform: translateY(40px); transition: opacity 1s cubic-bezier(0.19, 1, 0.22, 1), transform 1s cubic-bezier(0.19, 1, 0.22, 1); }
+  .slide-left { opacity: 0; transform: translateX(-60px); transition: opacity 1.2s cubic-bezier(0.19, 1, 0.22, 1), transform 1.2s cubic-bezier(0.19, 1, 0.22, 1); }
+  .slide-right { opacity: 0; transform: translateX(60px); transition: opacity 1.2s cubic-bezier(0.19, 1, 0.22, 1), transform 1.2s cubic-bezier(0.19, 1, 0.22, 1); }
+  .scale-in { opacity: 0; transform: scale(0.92); filter: blur(8px); transition: opacity 1.2s cubic-bezier(0.19, 1, 0.22, 1), transform 1.2s cubic-bezier(0.19, 1, 0.22, 1), filter 1s ease-out; }
+  .reveal { opacity: 0; clip-path: inset(0 100% 0 0); transition: opacity 1.2s cubic-bezier(0.19, 1, 0.22, 1), clip-path 1.4s cubic-bezier(0.19, 1, 0.22, 1); }
+
+  .visible .fade-up,
+  .visible .slide-left,
+  .visible .slide-right { opacity: 1; transform: translate(0, 0); }
+  .visible .scale-in { opacity: 1; transform: scale(1); filter: blur(0); }
+  .visible .reveal { opacity: 1; clip-path: inset(0 0% 0 0); }
+
+  .d-1 { transition-delay: 0.1s; }
+  .d-2 { transition-delay: 0.25s; }
+  .d-3 { transition-delay: 0.4s; }
+  .d-4 { transition-delay: 0.55s; }
+  .d-5 { transition-delay: 0.7s; }
+
+  /* Letter-reveal hero */
+  .hero-word {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: top;
+    padding-bottom: 0.2em;
+    line-height: 1.1;
+  }
+  .hero-word span {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(110%);
+    animation: wordReveal 1s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  }
+  @keyframes wordReveal {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #9D7FD5;
+    font-weight: 500;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: inline-block;
+    position: relative;
+    padding-left: 36px;
+  }
+  .label::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 28px;
+    height: 1px;
+    background: #9D7FD5;
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1) 0.3s;
+  }
+  .visible .label::before { transform: scaleX(1); }
+
+  h1 {
+    font-size: clamp(44px, 9vw, 72px);
+    font-weight: 500;
+    letter-spacing: -2px;
+    line-height: 1.1;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 500;
+    letter-spacing: -0.8px;
+    margin-bottom: 24px;
+  }
+  h3 {
+    font-size: clamp(22px, 3.5vw, 28px);
+    font-weight: 500;
+    letter-spacing: -0.4px;
+    margin-bottom: 12px;
+  }
+  p { font-size: 17px; line-height: 1.7; color: #666; }
+  .hero-sub { font-size: 18px; color: #666; max-width: 500px; margin: 0 auto; }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid #E8D5FF;
+  }
+  .about-grid .mini-label {
+    font-size: 11px;
+    color: #9D7FD5;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+  .about-grid p { font-size: 14px; }
+
+  .image-placeholder {
+    width: 100%;
+    height: 460px;
+    background-color: #E8D5FF;
+    border-radius: 4px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9D7FD5;
+    font-size: 13px;
+    border: 1px solid rgba(157, 127, 213, 0.3);
+    overflow: hidden;
+    position: relative;
+  }
+  .image-placeholder.white { background-color: white; }
+  .image-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+  }
+  .image-placeholder:hover img { transform: scale(1.05); }
+
+  .image-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+  .visible .image-placeholder::after {
+    transform: translateX(100%);
+    transition: transform 1.8s cubic-bezier(0.19, 1, 0.22, 1) 0.5s;
+  }
+
+  .work-desc { max-width: 560px; }
+
+  .btn {
+    padding: 14px 32px;
+    border: 1px solid #9D7FD5;
+    border-radius: 4px;
+    color: #9D7FD5;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 0.4s ease;
+    display: inline-block;
+    background: transparent;
+    position: relative;
+    overflow: hidden;
+    cursor: none;
+    z-index: 1;
+  }
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    background: #E8D5FF;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
+    z-index: -1;
+  }
+  .btn:hover::before {
+    width: 400px;
+    height: 400px;
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(157, 127, 213, 0.25);
+  }
+  .btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  .hero-dots { margin-top: 56px; display: flex; justify-content: center; gap: 10px; }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #E8D5FF;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .dot.active { background: #9D7FD5; }
+  .dot:nth-child(2) { animation-delay: 0.3s; }
+  .dot:nth-child(3) { animation-delay: 0.6s; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.6; }
+  }
+
+  .container-narrow { max-width: 640px; width: 100%; position: relative; z-index: 1; }
+  .container-wide { max-width: 820px; width: 100%; position: relative; z-index: 1; }
+  .container-center { text-align: center; max-width: 700px; position: relative; z-index: 1; }
+  .footer-text { font-size: 12px; color: #999; margin-top: 64px; }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #9D7FD5;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.6;
+    animation: bounce 2s ease-in-out infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translate(-50%, 0); }
+    50% { transform: translate(-50%, -8px); }
+  }
+
+  @media (max-width: 600px) {
+    .section { padding: 2rem 1.25rem; }
+    .image-placeholder { height: 260px; }
+    .about-grid { grid-template-columns: 1fr; gap: 16px; }
+    .blob-1 { width: 250px; height: 250px; top: -50px; right: -50px; }
+    .blob-2 { width: 220px; height: 220px; bottom: -50px; left: -50px; }
+    .hero-sub { font-size: 16px; }
+    .scroll-hint { bottom: 20px; font-size: 10px; }
+    .container-wide, .container-narrow { max-width: 100%; }
+    .contact-content h2 { font-size: clamp(32px, 8vw, 48px) !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="particles-container" id="particles"></div>
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+<div class="scroll-progress"></div>
+
+<nav class="section-nav">
+  <a href="#hero" data-target="hero" class="active"></a>
+  <a href="#about" data-target="about"></a>
+  <a href="#work1" data-target="work1"></a>
+  <a href="#work2" data-target="work2"></a>
+  <a href="#contact" data-target="contact"></a>
+</nav>
+
+<section class="section visible" id="hero">
+  <div class="blob blob-1"></div>
+  <div class="container-center">
+    <div class="label">Game Designer</div>
+    <h1>
+      <span class="hero-word"><span style="animation-delay: 0.2s;">Ronnie&nbsp;</span></span>
+      <span class="hero-word"><span style="animation-delay: 0.35s;">Tyler</span></span><br>
+      <span class="hero-word"><span style="animation-delay: 0.5s;">Everage</span></span>
+    </h1>
+    <p class="hero-sub fade-up d-4">Building worlds, mechanics, and characters that challenge and captivate.</p>
+    <div class="hero-dots fade-up d-5">
+      <span class="dot active"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </div>
+  </div>
+  <div class="scroll-hint">Scroll</div>
+</section>
+
+<section class="section soft-purple-bg" id="about">
+  <div class="blob blob-2"></div>
+  <div class="container-narrow">
+    <div class="label fade-up">01 — About</div>
+    <h2 class="reveal d-1">Designing for depth.</h2>
+    <p class="fade-up d-2" style="margin-bottom: 20px;">I'm a game designer obsessed with what happens beneath the surface — the systems, the spaces, and the characters that turn a game into something players can't stop thinking about.</p>
+    <p class="fade-up d-3">My focus is level design for competitive games, character design, and the kind of deep mechanical systems that reward mastery. If it can be skill-tested, I want to design it.</p>
+    <div class="about-grid">
+      <div class="fade-up d-3">
+        <div class="mini-label">Focus</div>
+        <p>Level design</p>
+      </div>
+      <div class="fade-up d-4">
+        <div class="mini-label">Craft</div>
+        <p>Character design</p>
+      </div>
+      <div class="fade-up d-5">
+        <div class="mini-label">Passion</div>
+        <p>Deep mechanics</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="work1">
+  <div class="container-wide">
+    <div class="label fade-up">02 — Level Design</div>
+    <div class="scale-in d-1">
+      <div class="image-placeholder">
+        <!-- Replace with: <img src="images/level1.jpg" alt="Level 1"> -->
+        [ Drop your level design image here ]
+      </div>
+    </div>
+    <h3 class="slide-left d-2">Project Title</h3>
+    <p class="slide-left d-3 work-desc">A short breakdown of the map — the competitive pacing, sightlines, and decision points that make it work at a high level of play.</p>
+  </div>
+</section>
+
+<section class="section soft-purple-bg" id="work2">
+  <div class="container-wide">
+    <div class="label fade-up">03 — Character Design</div>
+    <div class="scale-in d-1">
+      <div class="image-placeholder white">
+        <!-- Replace with: <img src="images/character1.jpg" alt="Character 1"> -->
+        [ Drop your character art here ]
+      </div>
+    </div>
+    <h3 class="slide-right d-2">Character Name</h3>
+    <p class="slide-right d-3 work-desc">Kit philosophy, silhouette reasoning, and how their mechanics create a unique identity in a competitive roster.</p>
+  </div>
+</section>
+
+<section class="section" id="contact">
+  <div class="blob blob-1"></div>
+  <div class="container-center">
+    <div class="label fade-up">04 — Contact</div>
+    <h2 class="reveal d-1" style="font-size: 48px; letter-spacing: -1.2px;">Let's build something.</h2>
+    <p class="fade-up d-2" style="margin-bottom: 40px; font-size: 16px;">Open to collaborations, studio work, and interesting conversations about design.</p>
+    <div class="btn-row">
+      <a href="mailto:your@email.com" class="btn fade-up d-3">Email</a>
+      <a href="https://twitter.com/yourhandle" class="btn fade-up d-4">Twitter / X</a>
+      <a href="https://artstation.com/yourhandle" class="btn fade-up d-5">ArtStation</a>
+    </div>
+    <p class="footer-text fade-up d-5">© Ronnie Tyler Everage</p>
+  </div>
+</section>
+
+<script>
+  // Section reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('.section').forEach(s => observer.observe(s));
+
+  // Scroll progress
+  window.addEventListener('scroll', () => {
+    const st = window.pageYOffset;
+    const dh = document.documentElement.scrollHeight - window.innerHeight;
+    document.querySelector('.scroll-progress').style.width = (st / dh * 100) + '%';
+  });
+
+  // Active nav indicator
+  const navLinks = document.querySelectorAll('.section-nav a');
+  const navObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.section-nav a[data-target="${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.section').forEach(s => navObserver.observe(s));
+
+  // Custom cursor
+  const dot = document.querySelector('.cursor-dot');
+  const ring = document.querySelector('.cursor-ring');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', (e) => {
+    mx = e.clientX; my = e.clientY;
+    dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
+  });
+  function loop() {
+    rx += (mx - rx) * 0.15;
+    ry += (my - ry) * 0.15;
+    ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
+    requestAnimationFrame(loop);
+  }
+  loop();
+  document.querySelectorAll('a, .btn').forEach(el => {
+    el.addEventListener('mouseenter', () => ring.classList.add('hover'));
+    el.addEventListener('mouseleave', () => ring.classList.remove('hover'));
+  });
+
+  // Subtle particles — small, slow, sparse
+  const particlesContainer = document.getElementById('particles');
+  function createParticle() {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 3 + 1.5; // 1.5px to 4.5px (small)
+    const duration = Math.random() * 15 + 20; // 20–35s (slow)
+    const drift = (Math.random() - 0.5) * 80; // side-to-side drift
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.animationDuration = duration + 's';
+    p.style.setProperty('--drift', drift + 'px');
+    particlesContainer.appendChild(p);
+    setTimeout(() => p.remove(), duration * 1000);
+  }
+  // Pre-seed a few so they're visible immediately, staggered
+  for (let i = 0; i < 12; i++) {
+    setTimeout(createParticle, i * 1500);
+  }
+  // Keep generating new ones slowly
+  setInterval(createParticle, 2000);
+</script>
+
+</body>
+</html>
