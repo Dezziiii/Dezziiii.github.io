@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Tyler Everage — game designer specializing in level design and character design. Crafting worlds and the characters who live in them." />
+  <meta name="theme-color" content="#f7f3ee" />
+  <title>Tyler Everage — Game Designer</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Soft animated background -->
+  <div class="bg-field" aria-hidden="true">
+    <span class="blob blob--1"></span>
+    <span class="blob blob--2"></span>
+    <span class="blob blob--3"></span>
+    <div class="grain"></div>
+  </div>
+
+  <!-- Custom cursor -->
+  <div class="cursor" aria-hidden="true">
+    <span class="cursor__dot"></span>
+    <span class="cursor__ring"></span>
+  </div>
+
+  <!-- Page load curtain -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <span class="loader__name">Tyler Everage</span>
+  </div>
+
+  <!-- Navigation -->
+  <header class="nav" id="nav">
+    <a href="#top" class="nav__logo" data-hover>
+      <span class="nav__mark">TE</span>
+      <span class="nav__name">Tyler Everage</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#work" data-hover>Work</a>
+      <a href="#about" data-hover>About</a>
+      <a href="#contact" data-hover>Contact</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <!-- Hero -->
+    <section class="hero" id="hero">
+      <p class="hero__eyebrow reveal">Game Designer · Level &amp; Character Design</p>
+      <h1 class="hero__title">
+        <span class="line"><span class="line__inner">Designing worlds</span></span>
+        <span class="line"><span class="line__inner">&amp; the <em>characters</em></span></span>
+        <span class="line"><span class="line__inner">who live in them.</span></span>
+      </h1>
+      <div class="hero__foot">
+        <p class="hero__lead reveal">
+          I’m Tyler — an aspiring game designer shaping spaces players love to
+          explore and characters they can’t forget.
+        </p>
+        <a href="#work" class="btn btn--primary reveal" data-hover data-magnetic>
+          <span>View selected work</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+      <div class="hero__scroll reveal" aria-hidden="true">
+        <span>Scroll</span>
+        <span class="hero__scroll-line"></span>
+      </div>
+    </section>
+
+    <!-- Marquee -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        <span>Level Design</span><span class="dot">✦</span>
+        <span>Character Design</span><span class="dot">✦</span>
+        <span>World Building</span><span class="dot">✦</span>
+        <span>Systems &amp; Flow</span><span class="dot">✦</span>
+        <span>Level Design</span><span class="dot">✦</span>
+        <span>Character Design</span><span class="dot">✦</span>
+        <span>World Building</span><span class="dot">✦</span>
+        <span>Systems &amp; Flow</span><span class="dot">✦</span>
+      </div>
+    </div>
+
+    <!-- About -->
+    <section class="about" id="about">
+      <p class="section-label reveal">(01) — About</p>
+      <div class="about__grid">
+        <h2 class="about__statement reveal">
+          I believe great games are built where <em>space</em> and
+          <em>character</em> meet — a level that teaches you how to play, and a
+          character that makes you want to.
+        </h2>
+        <div class="about__col reveal">
+          <p>
+            I’m a future game designer focused on level design and character
+            design. I care about pacing, readability, and the small moments of
+            delight that turn a room into a memory.
+          </p>
+          <p>
+            My approach is part architect, part storyteller: blocking out
+            spaces that guide players intuitively, then populating them with
+            characters who have history, intent, and a point of view.
+          </p>
+          <ul class="about__facts">
+            <li><span>Now</span> Building my design portfolio</li>
+            <li><span>Focus</span> Level &amp; Character Design</li>
+            <li><span>Tools</span> Unreal · Unity · Blender · Figma</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Work -->
+    <section class="work" id="work">
+      <div class="work__head">
+        <p class="section-label reveal">(02) — Selected Work</p>
+        <h2 class="work__title reveal">A few things I’ve been crafting.</h2>
+      </div>
+
+      <ul class="projects">
+        <li class="project reveal" data-tilt>
+          <a href="#contact" class="project__inner" data-hover>
+            <div class="project__media" style="--swatch-a:#cdb4f6; --swatch-b:#a7c7ff;">
+              <span class="project__tag">Level Design</span>
+              <span class="project__shape"></span>
+            </div>
+            <div class="project__meta">
+              <h3>Hollow Ascent</h3>
+              <p>A vertical platforming level exploring sightlines, pacing, and the joy of the reveal.</p>
+              <span class="project__role">Blockout · Pacing · Lighting</span>
+            </div>
+          </a>
+        </li>
+
+        <li class="project reveal" data-tilt>
+          <a href="#contact" class="project__inner" data-hover>
+            <div class="project__media" style="--swatch-a:#ffc8dd; --swatch-b:#ffd6a5;">
+              <span class="project__tag">Character Design</span>
+              <span class="project__shape"></span>
+            </div>
+            <div class="project__meta">
+              <h3>The Wanderers</h3>
+              <p>A cast of four travelers — silhouettes, palettes, and personalities built to read at a glance.</p>
+              <span class="project__role">Concept · Silhouette · Story</span>
+            </div>
+          </a>
+        </li>
+
+        <li class="project reveal" data-tilt>
+          <a href="#contact" class="project__inner" data-hover>
+            <div class="project__media" style="--swatch-a:#b8f2e6; --swatch-b:#a7c7ff;">
+              <span class="project__tag">Level Design</span>
+              <span class="project__shape"></span>
+            </div>
+            <div class="project__meta">
+              <h3>Tidewatch Harbor</h3>
+              <p>An open hub level designed around landmarks, loops, and player-led discovery.</p>
+              <span class="project__role">Layout · Flow · Landmarks</span>
+            </div>
+          </a>
+        </li>
+
+        <li class="project reveal" data-tilt>
+          <a href="#contact" class="project__inner" data-hover>
+            <div class="project__media" style="--swatch-a:#ffd6e0; --swatch-b:#cdb4f6;">
+              <span class="project__tag">Character Design</span>
+              <span class="project__shape"></span>
+            </div>
+            <div class="project__meta">
+              <h3>Ember &amp; Ash</h3>
+              <p>A duo study in contrast — warm vs. cool, bold vs. timid — told entirely through shape language.</p>
+              <span class="project__role">Duo · Shape Language · Color</span>
+            </div>
+          </a>
+        </li>
+      </ul>
+      <p class="work__note reveal">More case studies coming soon — swap these placeholders with your real projects.</p>
+    </section>
+
+    <!-- Approach / Skills -->
+    <section class="approach" id="approach">
+      <p class="section-label reveal">(03) — How I Work</p>
+      <div class="approach__list">
+        <article class="approach__item reveal">
+          <span class="approach__num">01</span>
+          <h3>Research &amp; Intent</h3>
+          <p>Every space and character starts with a question: what should the player feel, and why?</p>
+        </article>
+        <article class="approach__item reveal">
+          <span class="approach__num">02</span>
+          <h3>Blockout &amp; Sketch</h3>
+          <p>Fast, rough, and playable. I prototype layouts and silhouettes before committing to detail.</p>
+        </article>
+        <article class="approach__item reveal">
+          <span class="approach__num">03</span>
+          <h3>Iterate &amp; Polish</h3>
+          <p>Playtest, listen, refine. The magic lives in the tenth pass, not the first.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="contact" id="contact">
+      <p class="section-label reveal">(04) — Contact</p>
+      <h2 class="contact__title reveal">
+        Let’s build something
+        <span class="contact__title-em">worth exploring.</span>
+      </h2>
+      <a href="mailto:dezzilttv@gmail.com" class="contact__email reveal" data-hover data-magnetic>
+        dezzilttv@gmail.com
+      </a>
+      <div class="contact__socials reveal">
+        <a href="#" data-hover>ArtStation</a>
+        <a href="#" data-hover>Itch.io</a>
+        <a href="#" data-hover>LinkedIn</a>
+        <a href="https://github.com/Dezziiii" data-hover>GitHub</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© <span id="year"></span> Tyler Everage</span>
+    <span>Designed &amp; built with care</span>
+    <a href="#top" data-hover>Back to top ↑</a>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
