@@ -5,7 +5,4 @@
     <setting propertyKey="@Properties.ShowSeconds" title="@Strings.SettingShowSecondsTitle">
         <settingConfig type="boolean" />
     </setting>
-    <setting propertyKey="@Properties.DarkAod" title="@Strings.SettingDarkAodTitle">
-        <settingConfig type="boolean" />
-    </setting>
 </settings>

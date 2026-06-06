@@ -5,12 +5,14 @@ using Toybox.Lang as Lang;
 using Toybox.Time;
 using Toybox.Time.Gregorian;
 using Toybox.Application;
+using Toybox.ActivityMonitor;
+using Toybox.Activity;
 
 //
 // Casio AE1200 ("World Time") inspired watch face.
 //
 //  +----------------------------------------+
-//  |  [COMPASS]      WORLD TIME    [ALARM]   |   <- top-left compass box,
+//  |  [STEPS/HR]     WORLD TIME    [ALARM]   |   <- top-left activity box,
 //  |                                          |      top-right alarm box
 //  |   . . . dot-matrix world map . . . .     |
 //  |          FRI  6 JUN 2026                 |
@@ -19,9 +21,10 @@ using Toybox.Application;
 //  |        SU MO TU WE TH FR SA              |   <- day-of-week strip
 //  +----------------------------------------+
 //
-// Note on the compass: the Forerunner 165 has no magnetometer, so there is
-// no live heading available to a watch face. The top-left dial is therefore
-// a fixed, north-up compass rose in keeping with the AE1200's static graphic.
+// Note on the top-left window: the Forerunner 165 has no magnetometer, so a
+// watch face cannot show a live compass heading. Instead, the AE1200's
+// top-left window is repurposed as a live activity readout (heart rate +
+// daily step count).
 //
 // Note on alarms: Connect IQ exposes only the *number* of active alarms to a
 // watch face (DeviceSettings.alarmCount) -- individual alarm times are not
@@ -39,9 +42,8 @@ class CasioWorldTimeView extends Ui.WatchFace {
     private var mLowPower = false;
     private var mUse24Pref = false;
     private var mShowSeconds = true;
-    private var mDarkAod = true;
 
-    // --- theme colors (set per frame in pickTheme) ---
+    // --- theme colors (fixed: the WH-1A positive-LCD look, kept on always) ---
     private var mBg = 0x99A38C;     // greenish LCD background
     private var mInk = 0x1B1D18;    // dark "ink" / segments
     private var mDim = 0x6C7563;    // faded ink (inactive elements)
@@ -101,7 +103,6 @@ class CasioWorldTimeView extends Ui.WatchFace {
     private function loadSettings() {
         mUse24Pref = readBool("Use24Hour", false);
         mShowSeconds = readBool("ShowSeconds", true);
-        mDarkAod = readBool("DarkAod", true);
     }
 
     private function readBool(key, def) {
@@ -117,50 +118,25 @@ class CasioWorldTimeView extends Ui.WatchFace {
         return v;
     }
 
-    // Choose the palette for this frame. In always-on / sleep mode with the
-    // battery-safe option on, invert to a dark, low-lit face (AMOLED friendly).
-    private function pickTheme() {
-        if (mLowPower && mDarkAod) {
-            mBg = 0x000000;
-            mInk = 0xA9B79A;   // soft LCD-green text on black
-            mDim = 0x44503C;
-        } else {
-            mBg = 0x99A38C;
-            mInk = 0x1B1D18;
-            mDim = 0x6C7563;
-        }
-    }
-
     // ------------------------------------------------------------------
     // Full redraw (called on wake and once per minute).
     // ------------------------------------------------------------------
     function onUpdate(dc) {
         loadSettings();
-        pickTheme();
 
-        // Background.
+        // Background -- the light positive-LCD look, kept on at all times.
         dc.setColor(mInk, mBg);
         dc.clear();
 
         var clock = Sys.getClockTime();
         var settings = Sys.getDeviceSettings();
 
-        // In the battery-safe dark AOD we draw a minimal face only.
-        var minimal = (mLowPower && mDarkAod);
-
-        if (!minimal) {
-            drawWorldMap(dc);
-            drawCompassBox(dc);
-            drawAlarmBox(dc, settings);
-            drawTopLabel(dc);
-            drawDate(dc);
-            drawDayStrip(dc, clock);
-        } else {
-            // Minimal AOD: keep the alarm window and a faint map outline so
-            // the face is still recognisable, but light very few pixels.
-            drawAlarmBox(dc, settings);
-        }
-
+        drawWorldMap(dc);
+        drawActivityBox(dc);
+        drawAlarmBox(dc, settings);
+        drawTopLabel(dc);
+        drawDate(dc);
+        drawDayStrip(dc, clock);
         drawTime(dc, clock, settings);
 
         // When awake, seconds tick via onPartialUpdate every second.
@@ -223,56 +199,79 @@ class CasioWorldTimeView extends Ui.WatchFace {
     }
 
     // ------------------------------------------------------------------
-    // Top-left: north-up compass rose (decorative; FR165 has no compass).
+    // Top-left: live activity readout (heart rate + daily steps).
+    // (The FR165 has no compass, so this window shows useful live data.)
     // ------------------------------------------------------------------
-    private function drawCompassBox(dc) {
+    private function drawActivityBox(dc) {
         var bx = 56;
         var by = 60;
         var bw = 92;
         var bh = 74;
         drawWindowFrame(dc, bx, by, bw, bh);
-
         var ccx = bx + bw / 2;
-        var ccy = by + 34;
-        var ring = 20;
 
-        dc.setColor(mDim, Gfx.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
-        dc.drawCircle(ccx, ccy, ring);
-
-        // Cardinal ticks.
+        // --- Heart rate row (heart icon + bpm) at the top. ---
+        var hr = currentHeartRate();
+        var hrStr = (hr != null) ? hr.format("%d") : "--";
+        var hrW = dc.getTextWidthInPixels(hrStr, Gfx.FONT_XTINY);
+        var groupW = 12 + hrW;          // heart (~10px) + gap + text
+        var hx = ccx - groupW / 2;
+        drawHeart(dc, hx + 4, by + 16, mInk);
         dc.setColor(mInk, Gfx.COLOR_TRANSPARENT);
-        dc.drawLine(ccx, ccy - ring - 3, ccx, ccy - ring + 3);
-        dc.drawLine(ccx, ccy + ring + 3, ccx, ccy + ring - 3);
-        dc.drawLine(ccx - ring - 3, ccy, ccx - ring + 3, ccy);
-        dc.drawLine(ccx + ring + 3, ccy, ccx + ring - 3, ccy);
+        dc.drawText(hx + 12, by + 15, Gfx.FONT_XTINY, hrStr,
+            Gfx.TEXT_JUSTIFY_LEFT | Gfx.TEXT_JUSTIFY_VCENTER);
 
-        // North needle (filled) pointing up.
-        var n = [
-            [ccx, ccy - 17],
-            [ccx - 6, ccy + 2],
-            [ccx + 6, ccy + 2]
-        ];
+        // --- Step count (large, centered). ---
+        var steps = 0;
+        var info = ActivityMonitor.getInfo();
+        if (info != null && info.steps != null) {
+            steps = info.steps;
+        }
         dc.setColor(mInk, Gfx.COLOR_TRANSPARENT);
-        dc.fillPolygon(n);
-        // South needle (faded) pointing down.
-        var s = [
-            [ccx, ccy + 17],
-            [ccx - 6, ccy - 2],
-            [ccx + 6, ccy - 2]
-        ];
-        dc.setColor(mDim, Gfx.COLOR_TRANSPARENT);
-        dc.fillPolygon(s);
-        // Hub.
-        dc.setColor(mBg, Gfx.COLOR_TRANSPARENT);
-        dc.fillCircle(ccx, ccy, 2);
-
-        // "N" marker and label.
-        dc.setColor(mInk, Gfx.COLOR_TRANSPARENT);
-        dc.drawText(ccx, ccy - ring - 16, Gfx.FONT_XTINY, "N",
+        dc.drawText(ccx, by + 41, Gfx.FONT_TINY, steps.format("%d"),
             Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(ccx, by + bh - 11, Gfx.FONT_XTINY, "COMPASS",
+
+        // --- Label. ---
+        dc.drawText(ccx, by + bh - 11, Gfx.FONT_XTINY, "STEPS",
             Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+    }
+
+    // Latest heart rate from the activity monitor history (null if unknown).
+    private function currentHeartRate() {
+        try {
+            if (Activity has :getActivityInfo) {
+                var act = Activity.getActivityInfo();
+                if (act != null && act.currentHeartRate != null) {
+                    return act.currentHeartRate;
+                }
+            }
+            if (ActivityMonitor has :getHeartRateHistory) {
+                var it = ActivityMonitor.getHeartRateHistory(1, true);
+                if (it != null) {
+                    var sample = it.next();
+                    if (sample != null && sample.heartRate != null
+                            && sample.heartRate != ActivityMonitor.INVALID_HR_SAMPLE) {
+                        return sample.heartRate;
+                    }
+                }
+            }
+        } catch (e) {
+            return null;
+        }
+        return null;
+    }
+
+    // A small heart icon (two lobes + a point) drawn from primitives.
+    private function drawHeart(dc, cx, cy, color) {
+        dc.setColor(color, Gfx.COLOR_TRANSPARENT);
+        dc.fillCircle(cx - 2, cy - 1, 2);
+        dc.fillCircle(cx + 2, cy - 1, 2);
+        var pts = [
+            [cx - 4, cy],
+            [cx + 4, cy],
+            [cx, cy + 5]
+        ];
+        dc.fillPolygon(pts);
     }
 
     // ------------------------------------------------------------------

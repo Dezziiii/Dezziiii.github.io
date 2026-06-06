@@ -6,6 +6,4 @@
     <string id="SettingUse24HourPrompt">Ignore the system time format and always show 24-hour time.</string>
     <string id="SettingShowSecondsTitle">Show seconds</string>
     <string id="SettingShowSecondsPrompt">Show the small seconds counter (uses a little more battery).</string>
-    <string id="SettingDarkAodTitle">Battery-safe always-on</string>
-    <string id="SettingDarkAodPrompt">Invert to a dark, low-brightness face while the screen is in always-on / sleep mode (recommended for AMOLED).</string>
 </strings>

@@ -3,16 +3,12 @@
 <circle cx="195" cy="195" r="189" fill="#99A38C"/>
 <text x="195" y="78" fill="#1B1D18" font-size="14" font-weight="bold" text-anchor="middle" letter-spacing="2">WORLD TIME</text>
 <rect x="56" y="60" width="92" height="74" rx="6" fill="none" stroke="#1B1D18" stroke-width="2"/>
-<circle cx="102" cy="94" r="20" fill="none" stroke="#6C7563" stroke-width="2"/>
-<line x1="102" y1="77" x2="102" y2="71" stroke="#1B1D18" stroke-width="2"/>
-<line x1="102" y1="111" x2="102" y2="117" stroke="#1B1D18" stroke-width="2"/>
-<line x1="85" y1="94" x2="79" y2="94" stroke="#1B1D18" stroke-width="2"/>
-<line x1="119" y1="94" x2="125" y2="94" stroke="#1B1D18" stroke-width="2"/>
-<polygon points="102,77 96,96 108,96" fill="#1B1D18"/>
-<polygon points="102,111 96,92 108,92" fill="#6C7563"/>
-<circle cx="102" cy="94" r="2" fill="#99A38C"/>
-<text x="102" y="63" fill="#1B1D18" font-size="13" text-anchor="middle">N</text>
-<text x="102" y="128" fill="#1B1D18" font-size="11" text-anchor="middle" letter-spacing="1">COMPASS</text>
+<circle cx="90" cy="75" r="2" fill="#1B1D18"/>
+<circle cx="94" cy="75" r="2" fill="#1B1D18"/>
+<polygon points="88,76 96,76 92,81" fill="#1B1D18"/>
+<text x="100" y="80" fill="#1B1D18" font-size="13" text-anchor="start">72</text>
+<text x="102" y="107" fill="#1B1D18" font-size="18" font-weight="bold" text-anchor="middle">8423</text>
+<text x="102" y="128" fill="#1B1D18" font-size="11" text-anchor="middle" letter-spacing="1">STEPS</text>
 <rect x="242" y="60" width="92" height="74" rx="6" fill="none" stroke="#1B1D18" stroke-width="2"/>
 <text x="288" y="77" fill="#1B1D18" font-size="12" text-anchor="middle" letter-spacing="2">ALARM</text>
 <polygon points="263,112 264,108 266,102 268,99 270,98 272,99 274,102 276,108 277,112" fill="#1B1D18"/>
@@ -521,8 +517,8 @@
 <circle cx="142.8" cy="216.0" r="2" fill="#1B1D18"/>
 <circle cx="148.2" cy="216.0" r="2" fill="#1B1D18"/>
 <text x="195" y="234" fill="#1B1D18" font-size="13" text-anchor="middle" letter-spacing="1">SAT  6 JUN 2026</text>
-<text x="177" y="298" fill="#1B1D18" font-size="74" font-weight="bold" text-anchor="middle" font-family="Courier New,monospace">20:14</text>
-<text x="303" y="298" fill="#1B1D18" font-size="34" font-weight="bold" text-anchor="middle" font-family="Courier New,monospace">40</text>
+<text x="177" y="298" fill="#1B1D18" font-size="74" font-weight="bold" text-anchor="middle" font-family="Courier New,monospace">20:23</text>
+<text x="303" y="298" fill="#1B1D18" font-size="34" font-weight="bold" text-anchor="middle" font-family="Courier New,monospace">01</text>
 <text x="87" y="338" fill="#6C7563" font-size="14" font-weight="normal" text-anchor="middle">SU</text>
 <text x="123" y="338" fill="#6C7563" font-size="14" font-weight="normal" text-anchor="middle">MO</text>
 <text x="159" y="338" fill="#6C7563" font-size="14" font-weight="normal" text-anchor="middle">TU</text>

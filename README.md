@@ -9,7 +9,7 @@ styled after the classic **Casio AE1200WH-1A** ("World Time" / Royale).
 
 | Area | Content |
 |------|---------|
-| **Top-left** | A north-up **compass rose** (see note below). |
+| **Top-left** | Live **heart rate + daily steps** (see note below). |
 | **Center** | The signature Casio **dot-matrix world map**, kept as a real world map. |
 | **Top-right** | **Active alarms** — a bell + the number of alarms currently set. |
 | **Bottom** | Large `HH:MM` time with small ticking **seconds**. |
@@ -17,23 +17,21 @@ styled after the classic **Casio AE1200WH-1A** ("World Time" / Royale).
 | Under time | `SU MO TU WE TH FR SA` strip with today underlined. |
 
 The face uses the cream/green positive-LCD palette of the WH-1A (light
-background, dark "ink"). On AMOLED it flips to a battery-safe dark face in
-always-on / sleep mode (toggleable).
+background, dark "ink") and keeps that look on at all times, including the
+always-on display.
 
 ## Settings (Garmin Connect → Watch Face settings)
 
 - **Force 24-hour clock** — override the system time format.
 - **Show seconds** — toggle the ticking seconds counter.
-- **Battery-safe always-on** — invert to a dark, low-brightness face while
-  the screen is in always-on mode (recommended for AMOLED; on by default).
 
 ## Two honest hardware notes
 
-1. **Compass** — the Forerunner 165 has **no magnetometer**, so no live
-   heading is available to a watch face. The top-left dial is therefore a
-   fixed, north-up compass rose, in the spirit of the AE1200's printed
-   graphic. (If this were a watch with a compass, e.g. Fenix/Epix, the needle
-   could be driven by `Sensor` heading.)
+1. **Top-left window** — the Forerunner 165 has **no magnetometer**, so no
+   live compass heading is available to a watch face. Rather than fake it,
+   that window is repurposed as a live activity readout: current **heart
+   rate** and **daily step count**. (On a watch with a compass, e.g.
+   Fenix/Epix, this could instead be driven by `Sensor` heading.)
 2. **Alarms** — Connect IQ exposes only the **number** of active alarms
    (`DeviceSettings.alarmCount`) to a watch face, not the individual alarm
    times. The top-right window shows that count.

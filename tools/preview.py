@@ -59,20 +59,24 @@ def frame(x, y, w, h):
                  f'fill="none" stroke="{INK}" stroke-width="2"/>')
 
 
-# Compass box (top-left).
+# Activity box (top-left): heart rate + steps.
 bx, by, bw, bh = 56, 60, 92, 74
 frame(bx, by, bw, bh)
-ccx, ccy, ring = bx + bw // 2, by + 34, 20
-parts.append(f'<circle cx="{ccx}" cy="{ccy}" r="{ring}" fill="none" stroke="{DIM}" stroke-width="2"/>')
-for dx, dy in [(0, -ring), (0, ring), (-ring, 0), (ring, 0)]:
-    parts.append(f'<line x1="{ccx+dx*0.85:.0f}" y1="{ccy+dy*0.85:.0f}" '
-                 f'x2="{ccx+dx*1.15:.0f}" y2="{ccy+dy*1.15:.0f}" stroke="{INK}" stroke-width="2"/>')
-parts.append(f'<polygon points="{ccx},{ccy-17} {ccx-6},{ccy+2} {ccx+6},{ccy+2}" fill="{INK}"/>')
-parts.append(f'<polygon points="{ccx},{ccy+17} {ccx-6},{ccy-2} {ccx+6},{ccy-2}" fill="{DIM}"/>')
-parts.append(f'<circle cx="{ccx}" cy="{ccy}" r="2" fill="{BG}"/>')
-parts.append(f'<text x="{ccx}" y="{ccy-ring-11}" fill="{INK}" font-size="13" text-anchor="middle">N</text>')
+ccx = bx + bw // 2
+hr_demo = 72
+steps_demo = 8423
+# heart icon + bpm
+hx = ccx - 14
+parts.append(f'<circle cx="{hx+2}" cy="{by+15}" r="2" fill="{INK}"/>')
+parts.append(f'<circle cx="{hx+6}" cy="{by+15}" r="2" fill="{INK}"/>')
+parts.append(f'<polygon points="{hx},{by+16} {hx+8},{by+16} {hx+4},{by+21}" fill="{INK}"/>')
+parts.append(f'<text x="{hx+12}" y="{by+20}" fill="{INK}" font-size="13" '
+             f'text-anchor="start">{hr_demo}</text>')
+# step count + label
+parts.append(f'<text x="{ccx}" y="{by+47}" fill="{INK}" font-size="18" font-weight="bold" '
+             f'text-anchor="middle">{steps_demo}</text>')
 parts.append(f'<text x="{ccx}" y="{by+bh-6}" fill="{INK}" font-size="11" '
-             f'text-anchor="middle" letter-spacing="1">COMPASS</text>')
+             f'text-anchor="middle" letter-spacing="1">STEPS</text>')
 
 # Alarm box (top-right).
 abw, abh = 92, 74
