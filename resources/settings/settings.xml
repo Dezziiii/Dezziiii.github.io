@@ -1,0 +1,11 @@
+<settings>
+    <setting propertyKey="@Properties.Use24Hour" title="@Strings.SettingUse24HourTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowSeconds" title="@Strings.SettingShowSecondsTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.DarkAod" title="@Strings.SettingDarkAodTitle">
+        <settingConfig type="boolean" />
+    </setting>
+</settings>

@@ -1,0 +1,6 @@
+<properties>
+    <!-- User-configurable properties, editable from Garmin Connect / Express. -->
+    <property id="Use24Hour" type="boolean">false</property>
+    <property id="ShowSeconds" type="boolean">true</property>
+    <property id="DarkAod" type="boolean">true</property>
+</properties>
