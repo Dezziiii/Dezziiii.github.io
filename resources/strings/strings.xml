@@ -1,0 +1,9 @@
+<strings>
+    <string id="AppName">Casio World Time</string>
+
+    <!-- Settings labels -->
+    <string id="SettingUse24HourTitle">Force 24-hour clock</string>
+    <string id="SettingUse24HourPrompt">Ignore the system time format and always show 24-hour time.</string>
+    <string id="SettingShowSecondsTitle">Show seconds</string>
+    <string id="SettingShowSecondsPrompt">Show the small seconds counter (uses a little more battery).</string>
+</strings>
