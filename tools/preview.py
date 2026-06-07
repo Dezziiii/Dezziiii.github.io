@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Render an SVG mockup of the Casio World Time watch face (390x390).
+"""Render an SVG mockup of the Casio AE1200-style watch face (390x390).
 
-This mirrors the layout and the dot-matrix world-map data used by
-source/CasioWorldTimeView.mc so the design can be previewed without the
-Connect IQ simulator. It is a mockup only -- the device is the source of
-truth.
+Mirrors source/CasioWorldTimeView.mc: a black resin case with printed text,
+a rounded rectangular grey-green LCD panel, true 7-segment digits, the
+dot-matrix world map with a city cursor, a steps/HR window (top-left) and
+an alarm window (top-right). Mockup only -- the device is the source of truth.
 """
 import datetime
 import os
@@ -12,10 +12,14 @@ import os
 W = H = 390
 CX = CY = 195
 
-BG = "#99A38C"
-INK = "#1B1D18"
-DIM = "#6C7563"
-BEZEL = "#0a0a0a"
+# Palette
+CASE = "#070707"        # black resin case
+CASE_TX = "#c9ccc4"     # printed light-grey case text
+PANEL = "#949f88"       # grey-green positive LCD
+PANEL_EDGE = "#3c4438"  # LCD frame
+INK = "#1b1e18"         # active "on" segments / dark ink
+GHOST = "#86927b"       # faint "off" segments (classic LCD ghosting)
+DIM = "#5d6655"
 
 MAP_COLS = 56
 MAP = [
@@ -41,101 +45,181 @@ MAP = [
     [19, 18, 19],
 ]
 
+# 7-segment masks, bit order [a, b, c, d, e, f, g].
+SEG = {
+    "0": "abcdef", "1": "bc", "2": "abdeg", "3": "abcdg",
+    "4": "bcfg", "5": "acdfg", "6": "acdefg", "7": "abc",
+    "8": "abcdefg", "9": "abcdfg", " ": "",
+}
+
+P = []
+
+
+def slantx(x, py, ytop, h, k):
+    return x + (ytop + h - py) * k
+
+
+def hpoly(lx, ty, L, t, ytop, h, k):
+    pts = [
+        (lx,         ty + t / 2),
+        (lx + t / 2, ty),
+        (lx + L - t / 2, ty),
+        (lx + L,     ty + t / 2),
+        (lx + L - t / 2, ty + t),
+        (lx + t / 2, ty + t),
+    ]
+    return " ".join(f"{slantx(x,y,ytop,h,k):.1f},{y:.1f}" for x, y in pts)
+
+
+def vpoly(lx, ty, L, t, ytop, h, k):
+    pts = [
+        (lx + t / 2, ty),
+        (lx + t,     ty + t / 2),
+        (lx + t,     ty + L - t / 2),
+        (lx + t / 2, ty + L),
+        (lx,         ty + L - t / 2),
+        (lx,         ty + t / 2),
+    ]
+    return " ".join(f"{slantx(x,y,ytop,h,k):.1f},{y:.1f}" for x, y in pts)
+
+
+def seg7(x, y, w, h, t, ch, on=INK, off=GHOST, k=0.10):
+    """Append polygons for one 7-segment digit at (x, y)."""
+    half = h / 2.0
+    geo = {
+        "a": hpoly(x, y, w, t, y, h, k),
+        "g": hpoly(x, y + half - t / 2, w, t, y, h, k),
+        "d": hpoly(x, y + h - t, w, t, y, h, k),
+        "f": vpoly(x, y, half + t / 2, t, y, h, k),
+        "b": vpoly(x + w - t, y, half + t / 2, t, y, h, k),
+        "e": vpoly(x, y + half - t / 2, half + t / 2, t, y, h, k),
+        "c": vpoly(x + w - t, y + half - t / 2, half + t / 2, t, y, h, k),
+    }
+    onset = SEG.get(ch, "")
+    # draw ghosts first, then lit segments on top
+    for name in "abcdefg":
+        if name not in onset:
+            P.append(f'<polygon points="{geo[name]}" fill="{off}"/>')
+    for name in onset:
+        P.append(f'<polygon points="{geo[name]}" fill="{on}"/>')
+
+
+def seg_number(text, x, y, w, h, t, gap, on=INK, off=GHOST, colon_after=None):
+    """Draw a string of 7-seg digits/colon starting at top-left (x, y)."""
+    cx = x
+    for i, ch in enumerate(text):
+        if ch == ":":
+            r = max(2, t // 2)
+            P.append(f'<circle cx="{cx+r:.1f}" cy="{y+h*0.32:.1f}" r="{r}" fill="{on}"/>')
+            P.append(f'<circle cx="{cx+r:.1f}" cy="{y+h*0.68:.1f}" r="{r}" fill="{on}"/>')
+            cx += t + gap
+        else:
+            seg7(cx, y, w, h, t, ch, on, off)
+            cx += w + gap
+    return cx
+
+
+def text(x, y, s, size, fill=INK, anchor="middle", weight="normal", spacing=0, mono=False):
+    fam = 'font-family="Courier New,monospace"' if mono else ""
+    P.append(f'<text x="{x}" y="{y}" fill="{fill}" font-size="{size}" '
+             f'text-anchor="{anchor}" font-weight="{weight}" '
+             f'letter-spacing="{spacing}" {fam}>{s}</text>')
+
+
 now = datetime.datetime.now()
-parts = []
-parts.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" font-family="Helvetica,Arial,sans-serif">')
 
-# Bezel + LCD field (round screen).
-parts.append(f'<circle cx="{CX}" cy="{CY}" r="{CX}" fill="{BEZEL}"/>')
-parts.append(f'<circle cx="{CX}" cy="{CY}" r="{CX-6}" fill="{BG}"/>')
+P.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+         f'viewBox="0 0 {W} {H}" font-family="Helvetica,Arial,sans-serif">')
 
-# Top label.
-parts.append(f'<text x="{CX}" y="78" fill="{INK}" font-size="14" font-weight="bold" '
-             f'text-anchor="middle" letter-spacing="2">WORLD TIME</text>')
+# --- Black resin case (round watch) ---
+P.append(f'<circle cx="{CX}" cy="{CY}" r="{CX}" fill="{CASE}"/>')
 
+# Printed case text.
+text(CX, 40, "CASIO", 19, CASE_TX, weight="bold", spacing=4)
+text(CX, 58, "WORLD&#160;TIME", 9, CASE_TX, spacing=3)
+text(105, 360, "ILLUMINATOR", 9, CASE_TX, spacing=1)
+text(292, 360, "WR&#160;100M", 9, CASE_TX, spacing=1)
+text(CX, 376, "AE-1200WH", 9, CASE_TX, spacing=2)
 
-def frame(x, y, w, h):
-    parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="6" '
-                 f'fill="none" stroke="{INK}" stroke-width="2"/>')
+# --- LCD panel ---
+px0, py0, pw, ph = 50, 74, 290, 248
+P.append(f'<rect x="{px0-3}" y="{py0-3}" width="{pw+6}" height="{ph+6}" rx="18" '
+         f'fill="{PANEL_EDGE}"/>')
+P.append(f'<rect x="{px0}" y="{py0}" width="{pw}" height="{ph}" rx="15" fill="{PANEL}"/>')
 
+pxc = px0 + pw // 2
 
-# Activity box (top-left): heart rate + steps.
-bx, by, bw, bh = 56, 60, 92, 74
-frame(bx, by, bw, bh)
-ccx = bx + bw // 2
-hr_demo = 72
-steps_demo = 8423
-# heart icon + bpm
-hx = ccx - 14
-parts.append(f'<circle cx="{hx+2}" cy="{by+15}" r="2" fill="{INK}"/>')
-parts.append(f'<circle cx="{hx+6}" cy="{by+15}" r="2" fill="{INK}"/>')
-parts.append(f'<polygon points="{hx},{by+16} {hx+8},{by+16} {hx+4},{by+21}" fill="{INK}"/>')
-parts.append(f'<text x="{hx+12}" y="{by+20}" fill="{INK}" font-size="13" '
-             f'text-anchor="start">{hr_demo}</text>')
-# step count + label
-parts.append(f'<text x="{ccx}" y="{by+47}" fill="{INK}" font-size="18" font-weight="bold" '
-             f'text-anchor="middle">{steps_demo}</text>')
-parts.append(f'<text x="{ccx}" y="{by+bh-6}" fill="{INK}" font-size="11" '
-             f'text-anchor="middle" letter-spacing="1">STEPS</text>')
+# --- Top windows ---
+def window(x, y, w, h):
+    P.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="4" '
+             f'fill="none" stroke="{INK}" stroke-width="1.5"/>')
 
-# Alarm box (top-right).
-abw, abh = 92, 74
-abx, aby = W - 56 - abw, 60
-frame(abx, aby, abw, abh)
-alarm_count = 2  # demo value
-parts.append(f'<text x="{abx+abw//2}" y="{aby+17}" fill="{INK}" font-size="12" '
-             f'text-anchor="middle" letter-spacing="2">ALARM</text>')
+# Top-left: HR + steps
+lwx, lwy, lww, lwh = 62, 88, 92, 50
+window(lwx, lwy, lww, lwh)
+hr_demo, steps_demo = 72, 8423
+# small heart
+hx = lwx + 16
+P.append(f'<circle cx="{hx-2}" cy="{lwy+14}" r="2.2" fill="{INK}"/>')
+P.append(f'<circle cx="{hx+2}" cy="{lwy+14}" r="2.2" fill="{INK}"/>')
+P.append(f'<polygon points="{hx-4},{lwy+15} {hx+4},{lwy+15} {hx},{lwy+20}" fill="{INK}"/>')
+seg_number(str(hr_demo), hx + 10, lwy + 7, 12, 18, 3, 4)
+text(lwx + lww // 2, lwy + lwh - 6, f"{steps_demo}&#160;STEPS", 10, INK, spacing=1, mono=True)
+
+# Top-right: alarms
+rwx, rwy, rww, rwh = 236, 88, 92, 50
+window(rwx, rwy, rww, rwh)
+alarm_count = 2
 # bell
-bcx, bcy = abx + 28, aby + 46
+bcx, bcy = rwx + 18, rwy + 18
 bell = f"{bcx-7},{bcy+6} {bcx-6},{bcy+2} {bcx-4},{bcy-4} {bcx-2},{bcy-7} {bcx},{bcy-8} {bcx+2},{bcy-7} {bcx+4},{bcy-4} {bcx+6},{bcy+2} {bcx+7},{bcy+6}"
-parts.append(f'<polygon points="{bell}" fill="{INK}"/>')
-parts.append(f'<rect x="{bcx-8}" y="{bcy+6}" width="16" height="2" fill="{INK}"/>')
-parts.append(f'<circle cx="{bcx}" cy="{bcy+10}" r="2" fill="{INK}"/>')
-parts.append(f'<text x="{abx+56}" y="{aby+52}" fill="{INK}" font-size="30" font-weight="bold" '
-             f'text-anchor="middle">{alarm_count}</text>')
-parts.append(f'<text x="{abx+abw//2}" y="{aby+bh-6}" fill="{INK}" font-size="11" '
-             f'text-anchor="middle" letter-spacing="1">ACTIVE</text>')
+P.append(f'<polygon points="{bell}" fill="{INK}"/>')
+P.append(f'<rect x="{bcx-8}" y="{bcy+6}" width="16" height="2" fill="{INK}"/>')
+P.append(f'<circle cx="{bcx}" cy="{bcy+10}" r="2" fill="{INK}"/>')
+seg_number(str(alarm_count), bcx + 18, rwy + 7, 16, 24, 4, 4)
+text(rwx + rww // 2, rwy + rwh - 6, "ALARM&#160;ON", 10, INK, spacing=1, mono=True)
 
-# World map dots.
-mapW = 308
-x0 = CX - mapW // 2
-y0 = 138
+# --- World map ---
+mapW = 252
+mx0 = pxc - mapW // 2
+my0 = 144
 colSp = mapW / MAP_COLS
-rowSp = 4.0
+rowSp = 3.3
 for row, c0, c1 in MAP:
-    y = y0 + row * rowSp + rowSp / 2
+    yy = my0 + row * rowSp + rowSp / 2
     for c in range(c0, c1 + 1):
-        x = x0 + c * colSp + colSp / 2
-        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2" fill="{INK}"/>')
+        xx = mx0 + c * colSp + colSp / 2
+        P.append(f'<circle cx="{xx:.1f}" cy="{yy:.1f}" r="1.7" fill="{INK}"/>')
+# city cursor (blinking box over Europe-ish)
+curx = mx0 + 30 * colSp
+cury = my0 + 4 * rowSp
+P.append(f'<rect x="{curx-4:.1f}" y="{cury-4:.1f}" width="9" height="9" '
+         f'fill="none" stroke="{INK}" stroke-width="1.5"/>')
 
-# Date line.
-date_txt = now.strftime("%a  %-d %b %Y").upper()
-parts.append(f'<text x="{CX}" y="234" fill="{INK}" font-size="13" text-anchor="middle" '
-             f'letter-spacing="1">{date_txt}</text>')
+# --- Info row above time: day-of-week | city | date ---
+rowy = 222
+text(px0 + 18, rowy, now.strftime("%a").upper(), 13, INK, anchor="start", mono=True, weight="bold")
+text(pxc, rowy, "UTC+0", 12, DIM, mono=True)
+text(px0 + pw - 18, rowy, now.strftime("%-m-%-d"), 13, INK, anchor="end", mono=True, weight="bold")
 
-# Big time + seconds.
-parts.append(f'<text x="{CX-18}" y="298" fill="{INK}" font-size="74" font-weight="bold" '
-             f'text-anchor="middle" font-family="Courier New,monospace">{now.strftime("%H:%M")}</text>')
-parts.append(f'<text x="{CX+108}" y="298" fill="{INK}" font-size="34" font-weight="bold" '
-             f'text-anchor="middle" font-family="Courier New,monospace">{now.strftime("%S")}</text>')
+# --- Big 7-segment time + small seconds ---
+dw, dh, dt, dg = 38, 62, 8, 7
+timestr = now.strftime("%H:%M")
+# measure width: 4 digits + 1 colon
+tw = 4 * dw + 3 * dg + (dt + dg)
+sw, sh, st, sg = 20, 34, 5, 5
+secstr = now.strftime("%S")
+secw = 2 * sw + sg
+gap_ts = 12
+total = tw + gap_ts + secw
+tx = pxc - total / 2
+ty = 238
+endx = seg_number(timestr, tx, ty, dw, dh, dt, dg)
+seg_number(secstr, endx + gap_ts, ty + dh - sh, sw, sh, st, sg)
 
-# Day-of-week strip.
-labels = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
-today = (now.weekday() + 1) % 7  # python Mon=0 -> Sun index 0
-spacing = 36
-startX = CX - 3 * spacing
-for i, lab in enumerate(labels):
-    x = startX + i * spacing
-    color = INK if i == today else DIM
-    weight = "bold" if i == today else "normal"
-    parts.append(f'<text x="{x}" y="338" fill="{color}" font-size="14" font-weight="{weight}" '
-                 f'text-anchor="middle">{lab}</text>')
-    if i == today:
-        parts.append(f'<line x1="{x-11}" y1="344" x2="{x+11}" y2="344" stroke="{INK}" stroke-width="2"/>')
-
-parts.append('</svg>')
+P.append('</svg>')
 
 out = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "preview.svg"))
 with open(out, "w") as f:
-    f.write("\n".join(parts))
+    f.write("\n".join(P))
 print("wrote", out)

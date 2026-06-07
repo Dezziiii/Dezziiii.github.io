@@ -7,18 +7,20 @@ styled after the classic **Casio AE1200WH-1A** ("World Time" / Royale).
 
 ## What it shows
 
+It recreates the watch as a **black resin case** with printed text
+(`CASIO`, `WORLD TIME`, `WR 100M`, `AE-1200WH`) wrapped around a rounded
+**grey-green positive-LCD panel**. The time is drawn as **true hand-built
+7-segment digits** with faint "ghost" off-segments, exactly like a real LCD.
+
 | Area | Content |
 |------|---------|
-| **Top-left** | Live **heart rate + daily steps** (see note below). |
-| **Center** | The signature Casio **dot-matrix world map**, kept as a real world map. |
-| **Top-right** | **Active alarms** — a bell + the number of alarms currently set. |
-| **Bottom** | Large `HH:MM` time with small ticking **seconds**. |
-| Under map | Full date (`FRI 6 JUN 2026`). |
-| Under time | `SU MO TU WE TH FR SA` strip with today underlined. |
+| **Top-left window** | Live **heart rate + daily steps** (see note below). |
+| **Centre** | The signature Casio **dot-matrix world map** with a world-time **city cursor**. |
+| **Top-right window** | **Active alarms** — a bell + the number of alarms currently set. |
+| **Info row** | Day-of-week · time-zone · date. |
+| **Main** | Large **7-segment** `HH:MM` with small ticking **seconds**. |
 
-The face uses the cream/green positive-LCD palette of the WH-1A (light
-background, dark "ink") and keeps that look on at all times, including the
-always-on display.
+The face keeps the LCD look on at all times, including the always-on display.
 
 ## Settings (Garmin Connect → Watch Face settings)
 
