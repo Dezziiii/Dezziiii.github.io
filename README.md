@@ -18,14 +18,16 @@ with keeper loops, printed **bezel text**, and a **recessed cushion LCD** in
 the olive-grey positive-LCD colour. The time is drawn as hand-built
 **7-segment digits** with faint "ghost" off-segments, like a real LCD.
 
+Laid out like the real AE1200 display:
+
 | Area | Content |
 |------|---------|
-| **Top-left field** | Live **heart rate + daily steps** (see note below). |
-| **Centre** | The Casio **dot-matrix world map**, shaded for **day/night** with **sun + moon markers** and a home-city pointer, computed from the current UTC time. |
-| **Top-right field** | **Active alarms** — a bell + the number of alarms currently set. |
-| **Info row** | Day-of-week · home **city code** (LON/NYC/TYO…) · date. |
-| **Main** | Large **7-segment** `HH:MM` with small ticking **seconds**. |
-| **Status strip** | **Bluetooth** + **battery** gauge. |
+| **Top row, left** | Square **heart-rate dial** (keeps the AE1200 square + circular-dial look). |
+| **Top row, middle** | **Active alarms** — bell + the number of alarms set. |
+| **Top row, right** | Small **secondary display** — a second world-clock (UTC) and the dash row. |
+| **Middle** | The Casio **dot-matrix world map**, shaded for **day/night** with **sun + moon markers** and a home-city pointer, from the current UTC time. |
+| **Bottom** | Large **7-segment** `HH:MM` with `AM/PM` and small ticking **seconds**. |
+| **Date row** | Day-of-week · home **city code** (LON/NYC/TYO…) · `M-D` date. |
 
 The face keeps the LCD look on at all times, including the always-on display.
 
