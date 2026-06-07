@@ -299,8 +299,8 @@ class CasioWorldTimeView extends Ui.WatchFace {
         dc.drawRectangle(sqx, R1Y, SQS, SQS);
 
         var dcx = sqx + SQS / 2;
-        var dcy = R1Y + SQS / 2 - 5;
-        var dr = 21;
+        var dcy = R1Y + 30;
+        var dr = 20;
         dc.setColor(C_GHOST, Gfx.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawCircle(dcx, dcy, dr);
@@ -311,14 +311,27 @@ class CasioWorldTimeView extends Ui.WatchFace {
                         (dcx + dr * Math.cos(r)).toNumber(), (dcy + dr * Math.sin(r)).toNumber());
         }
 
-        drawHeart(dc, dcx, dcy - 4, C_INK);
+        // Needle: map HR 40..200 bpm onto a 270-degree sweep (gap at bottom).
         var hr = currentHeartRate();
-        var hrStr = (hr != null) ? hr.format("%d") : "--";
+        var frac = 0.0;
+        if (hr != null) {
+            frac = (hr - 40) / 160.0;
+            if (frac < 0.0) { frac = 0.0; }
+            if (frac > 1.0) { frac = 1.0; }
+        }
+        var nang = Math.toRadians(135 + frac * 270);
         dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
-        dc.drawText(dcx, dcy + 12, Gfx.FONT_XTINY, hrStr,
-            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(dcx, R1Y + SQS - 8, Gfx.FONT_XTINY, "PULSE",
-            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+        dc.setPenWidth(2);
+        dc.drawLine(dcx, dcy,
+            (dcx + (dr - 3) * Math.cos(nang)).toNumber(),
+            (dcy + (dr - 3) * Math.sin(nang)).toNumber());
+        dc.fillCircle(dcx, dcy, 3);
+
+        // Bottom: heart + bpm number.
+        drawHeart(dc, dcx - 13, R1Y + SQS - 12, C_INK);
+        dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
+        dc.drawText(dcx + 2, R1Y + SQS - 9, Gfx.FONT_XTINY, (hr != null) ? hr.format("%d") : "--",
+            Gfx.TEXT_JUSTIFY_LEFT | Gfx.TEXT_JUSTIFY_VCENTER);
     }
 
     // Row 1, middle: alarm (directly right of the square).
@@ -350,27 +363,28 @@ class CasioWorldTimeView extends Ui.WatchFace {
             Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
     }
 
-    // Row 1, right: the small secondary "dash" display (a second world-clock
-    // plus the little dash row, like the picture).
+    // Row 1, right: a stopwatch-style chrono display (the AE1200 STW mode in
+    // its reset state) plus the little dash row.
     private function drawDashDisplay(dc) {
         var dxx = PX + 8 + SQS + 8 + 64 + 8;
         var dxw = PX + PW - 8 - dxx;
 
         dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
-        dc.drawText(dxx + 4, R1Y + 12, Gfx.FONT_XTINY, "MUTE",
+        dc.drawText(dxx + 4, R1Y + 12, Gfx.FONT_XTINY, "STW",
             Gfx.TEXT_JUSTIFY_LEFT | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(dxx + dxw - 2, R1Y + 12, Gfx.FONT_XTINY, "ALM SIG",
+        dc.drawText(dxx + dxw - 2, R1Y + 12, Gfx.FONT_XTINY, "1/100",
             Gfx.TEXT_JUSTIFY_RIGHT | Gfx.TEXT_JUSTIFY_VCENTER);
 
-        var u = Gregorian.utcInfo(Time.now(), Time.FORMAT_SHORT);
-        var utcStr = u.hour.format("%02d") + ":" + u.min.format("%02d");
-        drawSegString(dc, utcStr, dxx + 8, R1Y + 24, 12, 18, 3, 3);
-        dc.drawText(dxx + dxw - 2, R1Y + 40, Gfx.FONT_XTINY, "UTC",
+        // Reset chrono MIN:SEC + centiseconds.
+        var endc = drawSegString(dc, "00:00", dxx + 6, R1Y + 22, 12, 18, 3, 3);
+        drawSegString(dc, "00", endc + 4, R1Y + 28, 7, 11, 2, 2);
+        dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
+        dc.drawText(dxx + dxw - 2, R1Y + 40, Gfx.FONT_XTINY, "SPLIT",
             Gfx.TEXT_JUSTIFY_RIGHT | Gfx.TEXT_JUSTIFY_VCENTER);
 
-        // The iconic dash row.
+        // Dash row.
         for (var i = 0; i < 3; i++) {
-            drawDigit(dc, dxx + 6 + i * 12, R1Y + 46, 10, 4, 4, "-");
+            drawDigit(dc, dxx + 6 + i * 12, R1Y + SQS - 12, 10, 4, 4, "-");
         }
     }
 

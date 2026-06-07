@@ -211,19 +211,25 @@ pxc = lx + lw // 2
 r1y = 84
 r1h = 66
 
-# Square heart-rate dial (keep the square + circular dial look).
+# Square heart-rate dial with a sweeping needle.
 sqs = 66
 sqx = lx + 8
 rect(sqx, r1y, sqs, sqs, "none", stroke=INK, sw=1.6)
-dcx, dcy, dr = sqx + sqs / 2, r1y + sqs / 2 - 5, 21
+dcx, dcy, dr = sqx + sqs / 2, r1y + 30, 20
 circle(dcx, dcy, dr, "none", stroke=GHOST, sw=1.5)
 for a in range(0, 360, 30):
     rr = math.radians(a)
     line(dcx + (dr - 3) * math.cos(rr), dcy + (dr - 3) * math.sin(rr),
          dcx + dr * math.cos(rr), dcy + dr * math.sin(rr), GHOST, 1)
-heart(dcx, dcy - 4, INK)
-text(dcx, dcy + 13, "72", 16, INK, weight="bold", mono=True)
-text(sqx + sqs / 2, r1y + sqs - 6, "PULSE", 8.5, INK, spacing=1)
+# needle: map HR 40..200 bpm onto a 270-degree sweep (gap at the bottom).
+hr_demo = 72
+frac = max(0.0, min(1.0, (hr_demo - 40) / 160.0))
+nang = math.radians(135 + frac * 270)
+line(dcx, dcy, dcx + (dr - 3) * math.cos(nang), dcy + (dr - 3) * math.sin(nang), INK, 2)
+circle(dcx, dcy, 2.6, INK)
+# bottom: heart + bpm
+heart(dcx - 13, r1y + sqs - 9, INK)
+text(dcx + 4, r1y + sqs - 5, str(hr_demo), 13, INK, anchor="start", mono=True, weight="bold")
 
 # Alarm (directly right of the square).
 alx = sqx + sqs + 8
@@ -233,17 +239,18 @@ bell(alx + 14, r1y + 34, INK)
 seg_number("2", alx + 30, r1y + 22, 16, 24, 4, 4)
 text(alx + alw / 2, r1y + sqs - 6, "ALM-SET", 8.5, INK, spacing=1)
 
-# Dash display (small secondary readout, to the right).
+# Dash display: stopwatch-style chrono (right).
 dxx = alx + alw + 8
 dxw = lx + lw - 8 - dxx
-text(dxx + 4, r1y + 12, "MUTE", 8.5, INK, anchor="start", spacing=1)
-text(dxx + dxw - 2, r1y + 12, "ALM SIG", 8.5, INK, anchor="end", spacing=1)
-# secondary world-clock (UTC) in small segments + the iconic dashes
-seg_number(utc.strftime("%H:%M"), dxx + 8, r1y + 24, 12, 18, 3, 3)
-text(dxx + dxw - 2, r1y + 38, "UTC", 9, INK, anchor="end", mono=True)
+text(dxx + 4, r1y + 12, "STW", 8.5, INK, anchor="start", spacing=1)
+text(dxx + dxw - 2, r1y + 12, "1/100", 8.5, INK, anchor="end", spacing=1)
+# main chrono MIN:SEC in small segments
+endc = seg_number("00:00", dxx + 6, r1y + 22, 12, 18, 3, 3)
+# small centiseconds + the dash row
+seg_number("00", endc + 4, r1y + 28, 7, 11, 2, 2)
+text(dxx + dxw - 2, r1y + 40, "SPLIT", 8.5, INK, anchor="end", spacing=1)
 for i in range(3):
-    seg7(dxx + 6 + i * 12, r1y + 46, 10, 4, 4, "-", INK, GHOST)  # dash row "- - -"
-text(dxx + dxw - 2, r1y + sqs - 6, "1/100", 8.5, INK, anchor="end", spacing=1)
+    seg7(dxx + 6 + i * 12, r1y + sqs - 12, 10, 4, 4, "-", INK, GHOST)
 
 # ---- Row 2: world map (centered, below the row) ----
 mapW = 214
