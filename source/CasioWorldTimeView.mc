@@ -2,6 +2,7 @@ using Toybox.WatchUi as Ui;
 using Toybox.Graphics as Gfx;
 using Toybox.System as Sys;
 using Toybox.Lang as Lang;
+using Toybox.Math;
 using Toybox.Time;
 using Toybox.Time.Gregorian;
 using Toybox.Application;
@@ -12,13 +13,15 @@ using Toybox.Activity;
 // Casio AE1200WH-1A ("World Time") inspired watch face for the
 // Garmin Forerunner 165 / 165 Music.
 //
-//   black resin case + printed text ("CASIO", "WORLD TIME", "WR 100M")
+//   black resin case + 4 pushers + printed text ("CASIO", "WORLD TIME"...)
 //   a rounded rectangular grey-green positive-LCD panel, containing:
 //     - top-left window : live heart rate + daily steps
 //     - top-right window: active alarm count (bell)
-//     - centre         : the dot-matrix world map with a city cursor
-//     - info row       : day-of-week | time zone | date
+//     - centre         : dot-matrix world map shaded for day/night, with
+//                        sun + moon markers computed from the current UTC time
+//     - info row       : day-of-week | home city code | date
 //     - main           : large true 7-segment time + small seconds
+//     - status strip   : Bluetooth + battery
 //
 // The time uses hand-drawn 7-segment digits with faint "ghost" off-segments
 // for an authentic LCD look. The Forerunner 165 has no magnetometer (so no
@@ -29,11 +32,16 @@ class CasioWorldTimeView extends Ui.WatchFace {
 
     // Palette.
     private const C_CASE   = 0x000000;   // black resin case
+    private const C_CASEHI = 0x3A3A3A;   // case rim highlight
+    private const C_BTN    = 0x2B2B2B;   // pusher body
+    private const C_BTNHI  = 0x5A5A5A;   // pusher highlight
     private const C_CASETX = 0xC9CCC4;   // printed light-grey case text
-    private const C_PANEL  = 0x949F88;   // grey-green positive LCD
+    private const C_PANEL  = 0x9AA58D;   // grey-green positive LCD
     private const C_EDGE   = 0x3C4438;   // LCD frame
-    private const C_INK    = 0x1B1E18;   // active "on" segments
-    private const C_GHOST  = 0x808C74;   // faint "off" segments
+    private const C_INK    = 0x191C16;   // active "on" segments
+    private const C_GHOST  = 0x828D76;   // faint "off" segments
+    private const C_NIGHT  = 0x717B62;   // map land on the night side
+    private const C_GLINT  = 0xB8C1AA;   // glass highlight
     private const C_DIM    = 0x5D6655;
 
     // LCD panel rectangle.
@@ -131,13 +139,16 @@ class CasioWorldTimeView extends Ui.WatchFace {
         dc.setColor(C_CASE, C_CASE);
         dc.clear();
 
+        drawCase(dc);
         drawCaseText(dc);
         drawPanel(dc);
+        drawGlint(dc);
         drawActivityWindow(dc);
         drawAlarmWindow(dc, settings);
         drawWorldMap(dc);
         drawInfoRow(dc, clock);
         drawTime(dc, clock, settings);
+        drawStatus(dc, settings);
     }
 
     // Per-second seconds update.
@@ -182,6 +193,27 @@ class CasioWorldTimeView extends Ui.WatchFace {
     }
 
     // ------------------------------------------------------------------
+    // Resin case rim + the four Casio pushers.
+    // ------------------------------------------------------------------
+    private function drawCase(dc) {
+        dc.setColor(C_CASEHI, Gfx.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawCircle(mCx, mH / 2, mCx - 2);
+
+        var angles = [150, 210, 30, 330];
+        for (var i = 0; i < angles.size(); i++) {
+            var a = Math.toRadians(angles[i]);
+            var bxc = (mCx + 183 * Math.cos(a)).toNumber();
+            var byc = (mH / 2 - 183 * Math.sin(a)).toNumber();
+            dc.setColor(C_BTN, Gfx.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(bxc - 9, byc - 6, 18, 12, 3);
+            dc.setColor(C_BTNHI, Gfx.COLOR_TRANSPARENT);
+            dc.setPenWidth(1);
+            dc.drawRoundedRectangle(bxc - 9, byc - 6, 18, 12, 3);
+        }
+    }
+
+    // ------------------------------------------------------------------
     // LCD panel.
     // ------------------------------------------------------------------
     private function drawPanel(dc) {
@@ -189,6 +221,15 @@ class CasioWorldTimeView extends Ui.WatchFace {
         dc.fillRoundedRectangle(PX - 3, PY - 3, PW + 6, PH + 6, 18);
         dc.setColor(C_PANEL, Gfx.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(PX, PY, PW, PH, 15);
+    }
+
+    // A subtle glass reflection streak near the top-left of the panel.
+    private function drawGlint(dc) {
+        dc.setColor(C_GLINT, Gfx.COLOR_TRANSPARENT);
+        dc.setPenWidth(3);
+        dc.drawLine(PX + 14, PY + 7, PX + 38, PY + 7);
+        dc.setPenWidth(2);
+        dc.drawLine(PX + 14, PY + 12, PX + 28, PY + 12);
     }
 
     private function drawWindowFrame(dc, x, y, w, h) {
@@ -257,31 +298,86 @@ class CasioWorldTimeView extends Ui.WatchFace {
     }
 
     // ------------------------------------------------------------------
-    // World map (dot matrix) + city cursor.
+    // World map (dot matrix) shaded for day/night, with sun + moon markers.
     // ------------------------------------------------------------------
+    private const MAP_W = 252;
+    private const MAP_X0 = 195 - 126;   // mCx - MAP_W/2
+    private const MAP_Y0 = 144;
+    private const MAP_ROWS = 20;
+
     private function drawWorldMap(dc) {
-        var mapW = 252;
-        var x0 = mCx - mapW / 2;
-        var y0 = 144;
-        var colSp = mapW.toFloat() / MAP_COLS;
+        var colSp = MAP_W.toFloat() / MAP_COLS;
         var rowSp = 3.3;
 
-        dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
+        // Sub-solar point from current UTC time.
+        var u = Gregorian.utcInfo(Time.now(), Time.FORMAT_SHORT);
+        var uh = u.hour + u.min / 60.0;
+        var n = (u.month - 1) * 30.4 + u.day;            // ~day of year
+        var decl = Math.toRadians(-23.44 * Math.cos(Math.toRadians(360.0 * (n + 10) / 365.0)));
+        var lonSun = 15.0 * (12.0 - uh);
+
         for (var i = 0; i < mMap.size(); i++) {
             var seg = mMap[i];
             var row = seg[0];
-            var y = (y0 + row * rowSp + rowSp / 2).toNumber();
+            var lat = 75.0 - (row / (MAP_ROWS - 1.0)) * 130.0;
+            var y = (MAP_Y0 + row * rowSp + rowSp / 2).toNumber();
             for (var c = seg[1]; c <= seg[2]; c++) {
-                var x = (x0 + c * colSp + colSp / 2).toNumber();
+                var lon = -180.0 + (c / (MAP_COLS - 1.0)) * 360.0;
+                dc.setColor(isDay(lon, lat, decl, lonSun) ? C_INK : C_NIGHT, Gfx.COLOR_TRANSPARENT);
+                var x = (MAP_X0 + c * colSp + colSp / 2).toNumber();
                 dc.fillCircle(x, y, 2);
             }
         }
 
-        // World-time city cursor (hollow square over Europe-ish).
-        var curx = (x0 + 30 * colSp).toNumber();
-        var cury = (y0 + 4 * rowSp).toNumber();
-        dc.setPenWidth(2);
-        dc.drawRectangle(curx - 4, cury - 4, 9, 9);
+        // Sun (day side) and moon (night side) markers.
+        drawSun(dc, wrapLon(lonSun), Math.toDegrees(decl), colSp, rowSp);
+        drawMoon(dc, wrapLon(lonSun + 180), -Math.toDegrees(decl), colSp, rowSp);
+    }
+
+    private function isDay(lon, lat, decl, lonSun) {
+        var hh = Math.toRadians(lon - lonSun);
+        var la = Math.toRadians(lat);
+        return (Math.sin(la) * Math.sin(decl)
+            + Math.cos(la) * Math.cos(decl) * Math.cos(hh)) > 0;
+    }
+
+    private function wrapLon(lon) {
+        var l = lon;
+        while (l > 180) { l -= 360; }
+        while (l < -180) { l += 360; }
+        return l;
+    }
+
+    private function mapPx(lon, colSp) {
+        var col = (lon + 180.0) / 360.0 * (MAP_COLS - 1);
+        return (MAP_X0 + col * colSp + colSp / 2).toNumber();
+    }
+
+    private function mapPy(lat, rowSp) {
+        var row = (75.0 - lat) / 130.0 * (MAP_ROWS - 1);
+        return (MAP_Y0 + row * rowSp + rowSp / 2).toNumber();
+    }
+
+    private function drawSun(dc, lon, lat, colSp, rowSp) {
+        var x = mapPx(lon, colSp);
+        var y = mapPy(lat, rowSp);
+        dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, 3);
+        dc.setPenWidth(1);
+        for (var a = 0; a < 360; a += 45) {
+            var r = Math.toRadians(a);
+            dc.drawLine((x + 5 * Math.cos(r)).toNumber(), (y + 5 * Math.sin(r)).toNumber(),
+                        (x + 7 * Math.cos(r)).toNumber(), (y + 7 * Math.sin(r)).toNumber());
+        }
+    }
+
+    private function drawMoon(dc, lon, lat, colSp, rowSp) {
+        var x = mapPx(lon, colSp);
+        var y = mapPy(lat, rowSp);
+        dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, 4);
+        dc.setColor(C_PANEL, Gfx.COLOR_TRANSPARENT);
+        dc.fillCircle(x + 2, y - 1, 3);
     }
 
     // ------------------------------------------------------------------
@@ -294,25 +390,73 @@ class CasioWorldTimeView extends Ui.WatchFace {
         var date = infoS.month.format("%d") + "-" + infoS.day.format("%d");
 
         dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
-        dc.drawText(PX + 18, 222, Gfx.FONT_XTINY, dow,
+        dc.drawText(PX + 18, 224, Gfx.FONT_XTINY, dow,
             Gfx.TEXT_JUSTIFY_LEFT | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(PX + PW - 18, 222, Gfx.FONT_XTINY, date,
+        dc.drawText(PX + PW - 18, 224, Gfx.FONT_XTINY, date,
             Gfx.TEXT_JUSTIFY_RIGHT | Gfx.TEXT_JUSTIFY_VCENTER);
-
-        dc.setColor(C_DIM, Gfx.COLOR_TRANSPARENT);
-        dc.drawText(mCx, 222, Gfx.FONT_XTINY, zoneLabel(clock),
+        dc.drawText(mCx, 224, Gfx.FONT_XTINY, cityCode(clock),
             Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
     }
 
-    private function zoneLabel(clock) {
+    // A representative 3-letter world-time city code for the home time zone.
+    private function cityCode(clock) {
         var off = 0;
         if (clock has :timeZoneOffset && clock.timeZoneOffset != null) {
-            off = clock.timeZoneOffset / 3600;
+            off = (clock.timeZoneOffset / 3600).toNumber();
         }
-        if (off >= 0) {
-            return "UTC+" + off.format("%d");
+        var codes = {
+            -11 => "MDY", -10 => "HNL", -9 => "ANC", -8 => "LAX", -7 => "DEN",
+            -6 => "CHI", -5 => "NYC", -4 => "CCS", -3 => "RIO", -2 => "FEN",
+            -1 => "AZO", 0 => "LON", 1 => "PAR", 2 => "CAI", 3 => "MOW",
+            4 => "DXB", 5 => "KHI", 6 => "DAC", 7 => "BKK", 8 => "HKG",
+            9 => "TYO", 10 => "SYD", 11 => "NOU", 12 => "AKL"
+        };
+        if (codes.hasKey(off)) {
+            return codes[off];
         }
-        return "UTC" + off.format("%d");
+        return "GMT";
+    }
+
+    // ------------------------------------------------------------------
+    // Status strip: Bluetooth (left) + battery (right), LCD style.
+    // ------------------------------------------------------------------
+    private function drawStatus(dc, settings) {
+        var y = 312;
+
+        // Bluetooth, only when a phone is connected.
+        var connected = false;
+        if (settings has :phoneConnected && settings.phoneConnected != null) {
+            connected = settings.phoneConnected;
+        }
+        if (connected) {
+            var bx = PX + 22;
+            dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
+            dc.setPenWidth(2);
+            dc.drawLine(bx, y - 7, bx, y + 7);
+            dc.drawLine(bx, y - 7, bx + 4, y - 3);
+            dc.drawLine(bx + 4, y - 3, bx - 3, y + 3);
+            dc.drawLine(bx, y + 7, bx + 4, y + 3);
+            dc.drawLine(bx + 4, y + 3, bx - 3, y - 3);
+        }
+
+        // Battery gauge.
+        var level = 1.0;
+        var stats = Sys.getSystemStats();
+        if (stats != null && stats.battery != null) {
+            level = stats.battery / 100.0;
+        }
+        var bxr = PX + PW - 46;
+        dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawRectangle(bxr, y - 6, 22, 12);
+        dc.fillRectangle(bxr + 22, y - 3, 3, 6);
+        var fillW = (18 * level).toNumber();
+        if (fillW > 0) {
+            dc.fillRectangle(bxr + 2, y - 4, fillW, 8);
+        }
+        dc.drawText(bxr - 6, y, Gfx.FONT_XTINY,
+            ((level * 100).toNumber()).format("%d") + "%",
+            Gfx.TEXT_JUSTIFY_RIGHT | Gfx.TEXT_JUSTIFY_VCENTER);
     }
 
     // ------------------------------------------------------------------

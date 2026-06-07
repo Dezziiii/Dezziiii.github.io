@@ -15,12 +15,22 @@ It recreates the watch as a **black resin case** with printed text
 | Area | Content |
 |------|---------|
 | **Top-left window** | Live **heart rate + daily steps** (see note below). |
-| **Centre** | The signature Casio **dot-matrix world map** with a world-time **city cursor**. |
+| **Centre** | The Casio **dot-matrix world map**, shaded for **day/night** with **sun + moon markers** computed from the current UTC time. |
 | **Top-right window** | **Active alarms** — a bell + the number of alarms currently set. |
-| **Info row** | Day-of-week · time-zone · date. |
+| **Info row** | Day-of-week · home **city code** (LON/NYC/TYO…) · date. |
 | **Main** | Large **7-segment** `HH:MM` with small ticking **seconds**. |
+| **Status strip** | **Bluetooth** + **battery** gauge. |
 
+Extra Casio detailing: the **black resin case** carries the four side
+**pushers** and printed text, and there's a faint **glass glint** on the LCD.
 The face keeps the LCD look on at all times, including the always-on display.
+
+### The "world time" touch
+
+Because it's a *World Time* watch, the map isn't just decoration: the night
+hemisphere is drawn in fainter dots and the daylight hemisphere in bold dots,
+with a little sun over the sub-solar point and a moon opposite it — so at a
+glance you can see where on Earth it's currently day or night.
 
 ## Settings (Garmin Connect → Watch Face settings)
 
