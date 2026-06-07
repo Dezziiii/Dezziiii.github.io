@@ -12,25 +12,33 @@ It recreates the watch as a **black resin case** with printed text
 **grey-green positive-LCD panel**. The time is drawn as **true hand-built
 7-segment digits** with faint "ghost" off-segments, exactly like a real LCD.
 
+It recreates the **physical watch**, not just a screen layout: a black resin
+case with the four metal **pushers** and their guards, resin **strap lugs**
+with keeper loops, printed **bezel text**, and a **recessed cushion LCD** in
+the olive-grey positive-LCD colour. The time is drawn as hand-built
+**7-segment digits** with faint "ghost" off-segments, like a real LCD.
+
 | Area | Content |
 |------|---------|
-| **Top-left window** | Live **heart rate + daily steps** (see note below). |
-| **Centre** | The Casio **dot-matrix world map**, shaded for **day/night** with **sun + moon markers** computed from the current UTC time. |
-| **Top-right window** | **Active alarms** — a bell + the number of alarms currently set. |
+| **Top-left field** | Live **heart rate + daily steps** (see note below). |
+| **Centre** | The Casio **dot-matrix world map**, shaded for **day/night** with **sun + moon markers** and a home-city pointer, computed from the current UTC time. |
+| **Top-right field** | **Active alarms** — a bell + the number of alarms currently set. |
 | **Info row** | Day-of-week · home **city code** (LON/NYC/TYO…) · date. |
 | **Main** | Large **7-segment** `HH:MM` with small ticking **seconds**. |
 | **Status strip** | **Bluetooth** + **battery** gauge. |
 
-Extra Casio detailing: the **black resin case** carries the four side
-**pushers** and printed text, and there's a faint **glass glint** on the LCD.
 The face keeps the LCD look on at all times, including the always-on display.
 
 ### The "world time" touch
 
 Because it's a *World Time* watch, the map isn't just decoration: the night
 hemisphere is drawn in fainter dots and the daylight hemisphere in bold dots,
-with a little sun over the sub-solar point and a moon opposite it — so at a
-glance you can see where on Earth it's currently day or night.
+with a sun over the sub-solar point and a moon opposite it — so at a glance
+you can see where on Earth it's day or night.
+
+> **Note on bezel print:** Garmin's smallest system font is larger than real
+> resin printing, so the case text is chunkier on-device than in `preview.svg`.
+> A custom bitmap font could match it exactly — see "ideas" at the bottom.
 
 ## Settings (Garmin Connect → Watch Face settings)
 

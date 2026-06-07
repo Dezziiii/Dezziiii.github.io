@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Render an SVG mockup of the Casio AE1200-style watch face (390x390).
-
-Mirrors source/CasioWorldTimeView.mc. Mockup only -- the device is the
-source of truth.
+"""SVG mockup of the Casio AE1200-style watch face (390x390), modelling the
+physical watch: resin case, strap lugs, metal pushers, recessed LCD and
+printed bezel text. Mirrors source/CasioWorldTimeView.mc. Mockup only.
 """
 import datetime
 import math
@@ -11,19 +10,28 @@ import os
 W = H = 390
 CX = CY = 195
 
-# Palette
-CASE = "#070707"
-CASE_HI = "#3a3a3a"
-BTN = "#2b2b2b"
-BTN_HI = "#5a5a5a"
-CASE_TX = "#c9ccc4"
-PANEL = "#9aa58d"
-PANEL_EDGE = "#3c4438"
-INK = "#191c16"
-GHOST = "#828d76"
-NIGHT = "#717b62"
-DIM = "#5d6655"
-GLINT = "#c2cbb4"
+# ---- Materials ----
+RESIN     = "#0d0e11"   # black resin body
+RESIN_HI  = "#2c3036"   # moulded edge highlight
+RESIN_HI2 = "#454b53"   # brightest bevel
+RESIN_SH  = "#040405"   # resin shadow
+STRAP     = "#101217"
+STRAP_HI  = "#23262d"
+STRAP_SH  = "#040506"
+METAL     = "#70757b"   # pusher metal
+METAL_HI  = "#aeb4ba"
+METAL_SH  = "#34373c"
+PRINT     = "#c7cabf"   # printed light text
+PRINT_DIM = "#7e8378"
+# ---- LCD ----
+FRAME     = "#2b3127"   # recessed LCD frame
+PANEL     = "#9aa58d"   # olive-grey positive LCD
+PANEL_SH  = "#7f8a72"
+INK       = "#181b15"
+GHOST     = "#828d76"
+NIGHT     = "#727c63"
+GLINT     = "#bcc5ae"
+DIM       = "#5d6655"
 
 MAP_COLS = 56
 MAP_ROWS = 20
@@ -49,24 +57,46 @@ MAP = [
     [18, 18, 20],
     [19, 18, 19],
 ]
-
-SEG = {
-    "0": "abcdef", "1": "bc", "2": "abdeg", "3": "abcdg",
-    "4": "bcfg", "5": "acdfg", "6": "acdefg", "7": "abc",
-    "8": "abcdefg", "9": "abcdfg", " ": "",
-}
-
-# Representative 3-letter world-time city codes by integer UTC offset.
-CITY = {
-    -11: "MDY", -10: "HNL", -9: "ANC", -8: "LAX", -7: "DEN", -6: "CHI",
-    -5: "NYC", -4: "CCS", -3: "RIO", -2: "FEN", -1: "AZO", 0: "LON",
-    1: "PAR", 2: "CAI", 3: "MOW", 4: "DXB", 5: "KHI", 6: "DAC",
-    7: "BKK", 8: "HKG", 9: "TYO", 10: "SYD", 11: "NOU", 12: "AKL",
-}
+SEG = {"0": "abcdef", "1": "bc", "2": "abdeg", "3": "abcdg", "4": "bcfg",
+       "5": "acdfg", "6": "acdefg", "7": "abc", "8": "abcdefg", "9": "abcdfg", " ": ""}
+CITY = {-11: "MDY", -10: "HNL", -9: "ANC", -8: "LAX", -7: "DEN", -6: "CHI",
+        -5: "NYC", -4: "CCS", -3: "RIO", -2: "FEN", -1: "AZO", 0: "LON",
+        1: "PAR", 2: "CAI", 3: "MOW", 4: "DXB", 5: "KHI", 6: "DAC",
+        7: "BKK", 8: "HKG", 9: "TYO", 10: "SYD", 11: "NOU", 12: "AKL"}
 
 P = []
 
 
+def rect(x, y, w, h, fill="none", rx=0, stroke=None, sw=1):
+    if fill is None:
+        fill = "none"
+    s = f' stroke="{stroke}" stroke-width="{sw}"' if stroke else ""
+    P.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="{rx}" fill="{fill}"{s}/>')
+
+
+def circle(cx, cy, r, fill="none", stroke=None, sw=1):
+    if fill is None:
+        fill = "none"
+    s = f' stroke="{stroke}" stroke-width="{sw}"' if stroke else ""
+    P.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" fill="{fill}"{s}/>')
+
+
+def line(x1, y1, x2, y2, stroke, sw=1):
+    P.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{stroke}" stroke-width="{sw}"/>')
+
+
+def poly(pts, fill):
+    s = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+    P.append(f'<polygon points="{s}" fill="{fill}"/>')
+
+
+def text(x, y, s, size, fill=INK, anchor="middle", weight="normal", spacing=0, mono=False):
+    fam = 'font-family="Courier New,monospace"' if mono else ""
+    P.append(f'<text x="{x:.1f}" y="{y:.1f}" fill="{fill}" font-size="{size}" '
+             f'text-anchor="{anchor}" font-weight="{weight}" letter-spacing="{spacing}" {fam}>{s}</text>')
+
+
+# ---- 7-segment ----
 def slantx(x, py, ytop, h, k):
     return x + (ytop + h - py) * k
 
@@ -74,41 +104,37 @@ def slantx(x, py, ytop, h, k):
 def hpoly(lx, ty, L, t, ytop, h, k):
     pts = [(lx, ty + t / 2), (lx + t / 2, ty), (lx + L - t / 2, ty),
            (lx + L, ty + t / 2), (lx + L - t / 2, ty + t), (lx + t / 2, ty + t)]
-    return " ".join(f"{slantx(x,y,ytop,h,k):.1f},{y:.1f}" for x, y in pts)
+    return [(slantx(x, y, ytop, h, k), y) for x, y in pts]
 
 
 def vpoly(lx, ty, L, t, ytop, h, k):
     pts = [(lx + t / 2, ty), (lx + t, ty + t / 2), (lx + t, ty + L - t / 2),
            (lx + t / 2, ty + L), (lx, ty + L - t / 2), (lx, ty + t / 2)]
-    return " ".join(f"{slantx(x,y,ytop,h,k):.1f},{y:.1f}" for x, y in pts)
+    return [(slantx(x, y, ytop, h, k), y) for x, y in pts]
 
 
 def seg7(x, y, w, h, t, ch, on=INK, off=GHOST, k=0.10):
     half = h / 2.0
-    geo = {
-        "a": hpoly(x, y, w, t, y, h, k),
-        "g": hpoly(x, y + half - t / 2, w, t, y, h, k),
-        "d": hpoly(x, y + h - t, w, t, y, h, k),
-        "f": vpoly(x, y, half + t / 2, t, y, h, k),
-        "b": vpoly(x + w - t, y, half + t / 2, t, y, h, k),
-        "e": vpoly(x, y + half - t / 2, half + t / 2, t, y, h, k),
-        "c": vpoly(x + w - t, y + half - t / 2, half + t / 2, t, y, h, k),
-    }
+    geo = {"a": hpoly(x, y, w, t, y, h, k), "g": hpoly(x, y + half - t / 2, w, t, y, h, k),
+           "d": hpoly(x, y + h - t, w, t, y, h, k), "f": vpoly(x, y, half + t / 2, t, y, h, k),
+           "b": vpoly(x + w - t, y, half + t / 2, t, y, h, k),
+           "e": vpoly(x, y + half - t / 2, half + t / 2, t, y, h, k),
+           "c": vpoly(x + w - t, y + half - t / 2, half + t / 2, t, y, h, k)}
     onset = SEG.get(ch, "")
     for name in "abcdefg":
         if name not in onset:
-            P.append(f'<polygon points="{geo[name]}" fill="{off}"/>')
+            poly(geo[name], off)
     for name in onset:
-        P.append(f'<polygon points="{geo[name]}" fill="{on}"/>')
+        poly(geo[name], on)
 
 
-def seg_number(text, x, y, w, h, t, gap, on=INK, off=GHOST):
+def seg_number(s, x, y, w, h, t, gap, on=INK, off=GHOST):
     cx = x
-    for ch in text:
+    for ch in s:
         if ch == ":":
             r = max(2, t // 2)
-            P.append(f'<circle cx="{cx+r:.1f}" cy="{y+h*0.34:.1f}" r="{r}" fill="{on}"/>')
-            P.append(f'<circle cx="{cx+r:.1f}" cy="{y+h*0.66:.1f}" r="{r}" fill="{on}"/>')
+            circle(cx + r, y + h * 0.34, r, on)
+            circle(cx + r, y + h * 0.66, r, on)
             cx += t + gap
         else:
             seg7(cx, y, w, h, t, ch, on, off)
@@ -116,13 +142,44 @@ def seg_number(text, x, y, w, h, t, gap, on=INK, off=GHOST):
     return cx
 
 
-def text(x, y, s, size, fill=INK, anchor="middle", weight="normal", spacing=0, mono=False):
-    fam = 'font-family="Courier New,monospace"' if mono else ""
-    P.append(f'<text x="{x}" y="{y}" fill="{fill}" font-size="{size}" '
-             f'text-anchor="{anchor}" font-weight="{weight}" '
-             f'letter-spacing="{spacing}" {fam}>{s}</text>')
+# ---- Hardware ----
+def pusher(cx, cy, side):
+    # resin guard nubs above/below the button
+    gw = 16
+    if side in ("l", "r"):
+        rect(cx - 7, cy - 18, 14, 8, RESIN_HI, rx=3)
+        rect(cx - 7, cy + 10, 14, 8, RESIN_HI, rx=3)
+    # metal pusher dome
+    circle(cx, cy, 10, METAL_SH)
+    circle(cx, cy, 9, METAL)
+    circle(cx - 2, cy - 2, 5.5, METAL_HI)
+    circle(cx, cy, 9, None, stroke=METAL_SH, sw=1)
 
 
+def strap(top):
+    # Resin strap lug + band fading off the top/bottom edge.
+    if top:
+        y0, y1 = 0, 70
+        wtop, wbot = 150, 188
+    else:
+        y0, y1 = 390, 320
+        wtop, wbot = 150, 188
+    pts = [(CX - wtop / 2, y0), (CX + wtop / 2, y0), (CX + wbot / 2, y1), (CX - wbot / 2, y1)]
+    poly(pts, STRAP)
+    # side highlights
+    line(CX - wtop / 2 + 4, y0, CX - wbot / 2 + 4, y1, STRAP_HI, 2)
+    line(CX + wtop / 2 - 4, y0, CX + wbot / 2 - 4, y1, STRAP_SH, 2)
+    # keeper loop
+    ky = 22 if top else 368
+    rect(CX - wbot / 2 * (0.8), ky - 6, wbot * 0.8, 12, STRAP_HI, rx=2)
+    rect(CX - wbot / 2 * (0.78), ky - 4, wbot * 0.78, 8, STRAP, rx=2)
+    # band holes (bottom strap only)
+    if not top:
+        for i in range(3):
+            circle(CX, 348 + i * 12, 2.4, RESIN_SH)
+
+
+# ============================ DRAW ============================
 now = datetime.datetime.now()
 utc = datetime.datetime.utcnow()
 uh = utc.hour + utc.minute / 60.0
@@ -131,12 +188,12 @@ decl = math.radians(-23.44 * math.cos(math.radians(360.0 * (N + 10) / 365.0)))
 lon_sun = 15.0 * (12.0 - uh)
 
 
-def col_lon(col):
-    return -180.0 + (col / (MAP_COLS - 1.0)) * 360.0
+def col_lon(c):
+    return -180.0 + (c / (MAP_COLS - 1.0)) * 360.0
 
 
-def row_lat(row):
-    return 75.0 - (row / (MAP_ROWS - 1.0)) * 130.0
+def row_lat(r):
+    return 75.0 - (r / (MAP_ROWS - 1.0)) * 130.0
 
 
 def is_day(lon, lat):
@@ -146,74 +203,76 @@ def is_day(lon, lat):
 
 
 P.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
-         f'viewBox="0 0 {W} {H}" font-family="Helvetica,Arial,sans-serif">')
+         f'viewBox="0 0 {W} {H}" font-family="Arial,Helvetica,sans-serif">')
 
-# --- Case ---
-P.append(f'<circle cx="{CX}" cy="{CY}" r="{CX}" fill="{CASE}"/>')
-P.append(f'<circle cx="{CX}" cy="{CY}" r="{CX-2}" fill="none" stroke="{CASE_HI}" stroke-width="1.5"/>')
+# Black resin body (whole round face).
+circle(CX, CY, CX, RESIN)
+# Straps top & bottom.
+strap(True)
+strap(False)
+# Moulded bezel bevel rings around where the LCD sits.
+P.append(f'<rect x="34" y="62" width="322" height="266" rx="46" fill="none" stroke="{RESIN_HI}" stroke-width="2"/>')
+P.append(f'<rect x="40" y="68" width="310" height="254" rx="40" fill="none" stroke="{RESIN_SH}" stroke-width="2"/>')
+# Top-left curvature highlight.
+P.append(f'<path d="M60,120 A150,150 0 0 1 150,58" fill="none" stroke="{RESIN_HI2}" stroke-width="1.5" opacity="0.5"/>')
 
-# Case pushers (4 Casio buttons).
-for ang, w_, h_ in [(150, 18, 11), (210, 18, 11), (30, 18, 11), (330, 18, 11)]:
-    bxc = CX + 183 * math.cos(math.radians(ang))
-    byc = CY - 183 * math.sin(math.radians(ang))
-    P.append(f'<rect x="{bxc-w_/2:.1f}" y="{byc-h_/2:.1f}" width="{w_}" height="{h_}" rx="3" '
-             f'fill="{BTN}" stroke="{BTN_HI}" stroke-width="1"/>')
+# Pushers (2 left, 2 right).
+pusher(40, 120, "l")
+pusher(40, 270, "l")
+pusher(350, 120, "r")
+pusher(350, 270, "r")
 
-# Printed case text.
-text(CX, 40, "CASIO", 19, CASE_TX, weight="bold", spacing=4)
-text(CX, 58, "WORLD&#160;TIME", 9, CASE_TX, spacing=3)
-text(120, 348, "LIGHT", 8, CASE_TX, spacing=1)
-text(270, 348, "WR&#160;100M", 8, CASE_TX, spacing=1)
-text(CX, 372, "AE-1200WH", 9, CASE_TX, spacing=2)
+# Printed bezel text (flanking the straps).
+text(96, 64, "CASIO", 17, PRINT, weight="bold", spacing=2)
+text(300, 62, "ILLUMINATOR", 8.5, PRINT, spacing=1)
+text(300, 72, "AE-1200WH", 8.5, PRINT_DIM, spacing=1)
+text(95, 334, "WATER", 8, PRINT_DIM, spacing=1)
+text(95, 343, "10 BAR RESIST", 8, PRINT_DIM, spacing=1)
+text(300, 338, "MODULE 3198", 8, PRINT_DIM, spacing=1)
+text(54, 150, "ADJUST", 7, PRINT_DIM, anchor="start", spacing=1)
+text(54, 252, "REVERSE", 7, PRINT_DIM, anchor="start", spacing=1)
+text(336, 150, "FORWARD", 7, PRINT_DIM, anchor="end", spacing=1)
+text(336, 252, "LIGHT", 7, PRINT_DIM, anchor="end", spacing=1)
 
-# --- LCD panel ---
-px0, py0, pw, ph = 50, 74, 290, 248
-P.append(f'<rect x="{px0-3}" y="{py0-3}" width="{pw+6}" height="{ph+6}" rx="18" fill="{PANEL_EDGE}"/>')
-P.append(f'<rect x="{px0}" y="{py0}" width="{pw}" height="{ph}" rx="15" fill="{PANEL}"/>')
-pxc = px0 + pw // 2
+# ---- Recessed LCD ----
+lx, ly, lw, lh = 46, 74, 298, 242
+rect(lx - 4, ly - 4, lw + 8, lh + 8, FRAME, rx=24)          # dark recess frame
+rect(lx, ly, lw, lh, PANEL, rx=20)                          # olive LCD
+# inner top/left shadow + bottom/right light to look recessed
+P.append(f'<rect x="{lx}" y="{ly}" width="{lw}" height="{lh}" rx="20" fill="none" stroke="{PANEL_SH}" stroke-width="1"/>')
+pxc = lx + lw // 2
 
+# Top-left data field: HR + steps (no box, LCD-native).
+hx = lx + 26
+circle(hx - 2, ly + 22, 2.4, INK)
+circle(hx + 2, ly + 22, 2.4, INK)
+poly([(hx - 4, ly + 23), (hx + 4, ly + 23), (hx, ly + 28)], INK)
+seg_number("72", hx + 10, ly + 14, 12, 18, 3, 4)
+text(lx + 12, ly + 44, "8423 STEP", 10, INK, anchor="start", mono=True)
 
-def window(x, y, w, h):
-    P.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="4" '
-             f'fill="none" stroke="{INK}" stroke-width="1.5"/>')
+# Top-right data field: alarm count.
+ax = lx + lw - 26
+text(ax + 8, ly + 16, "AL", 11, INK, anchor="end", mono=True, weight="bold")
+bcx, bcy = ax - 30, ly + 22
+bell = [(bcx - 6, bcy + 5), (bcx - 5, bcy + 1), (bcx - 3, bcy - 4), (bcx - 1, bcy - 6),
+        (bcx + 1, bcy - 6), (bcx + 3, bcy - 4), (bcx + 5, bcy + 1), (bcx + 6, bcy + 5)]
+poly(bell, INK)
+rect(bcx - 7, bcy + 5, 14, 1.8, INK)
+seg_number("2", ax - 14, ly + 12, 14, 22, 4, 4)
+text(lx + lw - 12, ly + 44, "ALARM ON", 10, INK, anchor="end", mono=True)
 
-
-# Top-left: HR + steps
-lwx, lwy, lww, lwh = 62, 88, 92, 50
-window(lwx, lwy, lww, lwh)
-hr_demo, steps_demo = 72, 8423
-hx = lwx + 16
-P.append(f'<circle cx="{hx-2}" cy="{lwy+14}" r="2.2" fill="{INK}"/>')
-P.append(f'<circle cx="{hx+2}" cy="{lwy+14}" r="2.2" fill="{INK}"/>')
-P.append(f'<polygon points="{hx-4},{lwy+15} {hx+4},{lwy+15} {hx},{lwy+20}" fill="{INK}"/>')
-seg_number(str(hr_demo), hx + 10, lwy + 7, 12, 18, 3, 4)
-text(lwx + lww // 2, lwy + lwh - 6, f"{steps_demo}&#160;STEPS", 10, INK, spacing=1, mono=True)
-
-# Top-right: alarms
-rwx, rwy, rww, rwh = 236, 88, 92, 50
-window(rwx, rwy, rww, rwh)
-alarm_count = 2
-bcx, bcy = rwx + 18, rwy + 18
-bell = f"{bcx-7},{bcy+6} {bcx-6},{bcy+2} {bcx-4},{bcy-4} {bcx-2},{bcy-7} {bcx},{bcy-8} {bcx+2},{bcy-7} {bcx+4},{bcy-4} {bcx+6},{bcy+2} {bcx+7},{bcy+6}"
-P.append(f'<polygon points="{bell}" fill="{INK}"/>')
-P.append(f'<rect x="{bcx-8}" y="{bcy+6}" width="16" height="2" fill="{INK}"/>')
-P.append(f'<circle cx="{bcx}" cy="{bcy+10}" r="2" fill="{INK}"/>')
-seg_number(str(alarm_count), bcx + 18, rwy + 7, 16, 24, 4, 4)
-text(rwx + rww // 2, rwy + rwh - 6, "ALARM&#160;ON", 10, INK, spacing=1, mono=True)
-
-# --- World map with day/night shading ---
-mapW = 252
+# ---- World map (day/night) ----
+mapW = 250
 mx0 = pxc - mapW // 2
-my0 = 144
+my0 = ly + 56
 colSp = mapW / MAP_COLS
-rowSp = 3.3
+rowSp = 3.2
 for row, c0, c1 in MAP:
     yy = my0 + row * rowSp + rowSp / 2
     lat = row_lat(row)
     for c in range(c0, c1 + 1):
         xx = mx0 + c * colSp + colSp / 2
-        col = INK if is_day(col_lon(c), lat) else NIGHT
-        P.append(f'<circle cx="{xx:.1f}" cy="{yy:.1f}" r="1.7" fill="{col}"/>')
+        circle(xx, yy, 1.7, INK if is_day(col_lon(c), lat) else NIGHT)
 
 
 def map_xy(lon, lat):
@@ -222,54 +281,55 @@ def map_xy(lon, lat):
     return (mx0 + col * colSp + colSp / 2, my0 + row * rowSp + rowSp / 2)
 
 
-# Sun marker (day side) + rays.
+# Home-city cursor: blinking pointer above the map (iconic AE1200 element).
+home_off = 0
+home_lon = max(-180, min(180, home_off * 15))
+hxp, _ = map_xy(home_lon, 0)
+poly([(hxp - 4, my0 - 9), (hxp + 4, my0 - 9), (hxp, my0 - 3)], INK)
+# Sun + moon.
 sx_, sy_ = map_xy(((lon_sun + 180) % 360) - 180, math.degrees(decl))
-P.append(f'<circle cx="{sx_:.1f}" cy="{sy_:.1f}" r="3.2" fill="{INK}"/>')
+circle(sx_, sy_, 3.0, INK)
 for a in range(0, 360, 45):
     dx, dy = math.cos(math.radians(a)), math.sin(math.radians(a))
-    P.append(f'<line x1="{sx_+dx*5:.1f}" y1="{sy_+dy*5:.1f}" x2="{sx_+dx*7:.1f}" y2="{sy_+dy*7:.1f}" stroke="{INK}" stroke-width="1.3"/>')
-# Moon marker (night side) -- crescent.
+    line(sx_ + dx * 4.5, sy_ + dy * 4.5, sx_ + dx * 6.5, sy_ + dy * 6.5, INK, 1.2)
 mlon = (((lon_sun + 180) + 180) % 360) - 180
 mx_, my_ = map_xy(mlon, -math.degrees(decl))
-P.append(f'<circle cx="{mx_:.1f}" cy="{my_:.1f}" r="3.4" fill="{INK}"/>')
-P.append(f'<circle cx="{mx_+1.7:.1f}" cy="{my_-1:.1f}" r="3" fill="{PANEL}"/>')
+circle(mx_, my_, 3.4, INK)
+circle(mx_ + 1.7, my_ - 1, 3, PANEL)
 
-# --- Info row: day | city | date ---
-rowy = 224
-text(px0 + 18, rowy, now.strftime("%a").upper(), 13, INK, anchor="start", mono=True, weight="bold")
-text(pxc, rowy, CITY.get(0, "GMT"), 13, INK, mono=True, weight="bold")
-text(px0 + pw - 18, rowy, now.strftime("%-m-%-d"), 13, INK, anchor="end", mono=True, weight="bold")
+# ---- Info row: day | city | date ----
+rowy = my0 + 78
+text(lx + 16, rowy, now.strftime("%a").upper(), 13, INK, anchor="start", mono=True, weight="bold")
+text(pxc, rowy, CITY.get(home_off, "GMT"), 13, INK, mono=True, weight="bold")
+text(lx + lw - 16, rowy, now.strftime("%-m-%-d"), 13, INK, anchor="end", mono=True, weight="bold")
 
-# --- Big 7-segment time + small seconds ---
-dw, dh, dt, dg = 38, 60, 8, 7
+# ---- Big 7-segment time + seconds ----
+dw, dh, dt, dg = 37, 58, 8, 7
 timestr = now.strftime("%H:%M")
 tw = 4 * dw + 3 * dg + (dt + dg)
-sw, sh, st, sg = 20, 34, 5, 5
-secstr = now.strftime("%S")
+sw, sh, st, sg = 19, 32, 5, 5
 secw = 2 * sw + sg
-gap_ts = 12
+gap_ts = 11
 total = tw + gap_ts + secw
 tx = pxc - total / 2
-ty = 240
+ty = rowy + 14
 endx = seg_number(timestr, tx, ty, dw, dh, dt, dg)
-seg_number(secstr, endx + gap_ts, ty + dh - sh, sw, sh, st, sg)
+seg_number(now.strftime("%S"), endx + gap_ts, ty + dh - sh, sw, sh, st, sg)
 
-# --- Status strip: Bluetooth (left) + battery (right) ---
-sty = 312
-# Bluetooth glyph
-bx = px0 + 20
-P.append(f'<polyline points="{bx},{sty-5} {bx+5},{sty} {bx},{sty+5} {bx},{sty-9} {bx+5},{sty-4} {bx-3},{sty+1} '
-         f'M{bx-3},{sty-4} {bx+5},{sty+1} {bx},{sty+5}" fill="none" stroke="{INK}" stroke-width="1.4"/>')
-# Battery
-batx = px0 + pw - 46
-P.append(f'<rect x="{batx}" y="{sty-6}" width="22" height="11" rx="2" fill="none" stroke="{INK}" stroke-width="1.4"/>')
-P.append(f'<rect x="{batx+22}" y="{sty-3}" width="2.5" height="5" fill="{INK}"/>')
-P.append(f'<rect x="{batx+2}" y="{sty-4}" width="{18*0.78:.0f}" height="7" fill="{INK}"/>')
+# ---- Status strip ----
+sty = ty + dh + 14
+bx = lx + 22
+P.append(f'<polyline points="{bx},{sty-6} {bx+4},{sty-2} {bx-3},{sty+3} {bx},{sty+6} {bx},{sty-6} {bx+4},{sty+2} {bx-3},{sty-3}" '
+         f'fill="none" stroke="{INK}" stroke-width="1.4"/>')
+batx = lx + lw - 48
+rect(batx, sty - 6, 22, 12, None, rx=2, stroke=INK, sw=1.6)
+rect(batx + 22, sty - 3, 2.6, 6, INK)
+rect(batx + 2, sty - 4, 18 * 0.78, 8, INK)
 text(batx - 6, sty + 4, "78%", 11, INK, anchor="end", mono=True)
 
-# --- Glass glint streak on the panel ---
-P.append(f'<line x1="{px0+14}" y1="{py0+7}" x2="{px0+38}" y2="{py0+7}" stroke="{GLINT}" stroke-width="3"/>')
-P.append(f'<line x1="{px0+14}" y1="{py0+12}" x2="{px0+28}" y2="{py0+12}" stroke="{GLINT}" stroke-width="2"/>')
+# ---- Glass glint ----
+line(lx + 16, ly + 9, lx + 42, ly + 9, GLINT, 3)
+line(lx + 16, ly + 14, lx + 30, ly + 14, GLINT, 2)
 
 P.append('</svg>')
 

@@ -13,46 +13,57 @@ using Toybox.Activity;
 // Casio AE1200WH-1A ("World Time") inspired watch face for the
 // Garmin Forerunner 165 / 165 Music.
 //
-//   black resin case + 4 pushers + printed text ("CASIO", "WORLD TIME"...)
-//   a rounded rectangular grey-green positive-LCD panel, containing:
-//     - top-left window : live heart rate + daily steps
-//     - top-right window: active alarm count (bell)
-//     - centre         : dot-matrix world map shaded for day/night, with
-//                        sun + moon markers computed from the current UTC time
-//     - info row       : day-of-week | home city code | date
-//     - main           : large true 7-segment time + small seconds
-//     - status strip   : Bluetooth + battery
+// Models the physical watch: black resin case, resin strap lugs, four metal
+// pushers, a recessed cushion LCD with printed bezel text, and the olive
+// positive-LCD display with true hand-drawn 7-segment digits and a dot-matrix
+// world map shaded for day/night.
 //
-// The time uses hand-drawn 7-segment digits with faint "ghost" off-segments
-// for an authentic LCD look. The Forerunner 165 has no magnetometer (so no
-// live compass) and Connect IQ exposes only the *count* of active alarms to a
-// watch face -- both choices are reflected above.
+// Custom data (the FR165 has no compass, and a watch face can only read the
+// alarm *count*): top-left window = heart rate + steps, top-right = alarms.
 //
 class CasioWorldTimeView extends Ui.WatchFace {
 
-    // Palette.
-    private const C_CASE   = 0x000000;   // black resin case
-    private const C_CASEHI = 0x3A3A3A;   // case rim highlight
-    private const C_BTN    = 0x2B2B2B;   // pusher body
-    private const C_BTNHI  = 0x5A5A5A;   // pusher highlight
-    private const C_CASETX = 0xC9CCC4;   // printed light-grey case text
-    private const C_PANEL  = 0x9AA58D;   // grey-green positive LCD
-    private const C_EDGE   = 0x3C4438;   // LCD frame
-    private const C_INK    = 0x191C16;   // active "on" segments
-    private const C_GHOST  = 0x828D76;   // faint "off" segments
-    private const C_NIGHT  = 0x717B62;   // map land on the night side
-    private const C_GLINT  = 0xB8C1AA;   // glass highlight
-    private const C_DIM    = 0x5D6655;
+    // ---- Materials (resin / metal / print) ----
+    private const C_RESIN   = 0x0D0E11;
+    private const C_RESINHI = 0x2C3036;
+    private const C_RESINHI2= 0x454B53;
+    private const C_RESINSH = 0x040405;
+    private const C_STRAP   = 0x101217;
+    private const C_STRAPHI = 0x23262D;
+    private const C_STRAPSH = 0x040506;
+    private const C_METAL   = 0x70757B;
+    private const C_METALHI = 0xAEB4BA;
+    private const C_METALSH = 0x34373C;
+    private const C_PRINT   = 0xC7CABF;
+    private const C_PRINTDM = 0x7E8378;
 
-    // LCD panel rectangle.
-    private const PX = 50;
+    // ---- LCD ----
+    private const C_FRAME   = 0x2B3127;
+    private const C_PANEL   = 0x9AA58D;
+    private const C_PANELSH = 0x7F8A72;
+    private const C_INK     = 0x181B15;
+    private const C_GHOST   = 0x828D76;
+    private const C_NIGHT   = 0x727C63;
+    private const C_GLINT   = 0xBCC5AE;
+    private const C_DIM     = 0x5D6655;
+
+    // ---- LCD rectangle ----
+    private const PX = 46;
     private const PY = 74;
-    private const PW = 290;
-    private const PH = 248;
+    private const PW = 298;
+    private const PH = 242;
+
+    // ---- World map ----
+    private const MAP_COLS = 56;
+    private const MAP_ROWS = 20;
+    private const MAP_W  = 250;
+    private const MAP_X0 = 70;     // PX + PW/2 - MAP_W/2
+    private const MAP_Y0 = 130;    // PY + 56
 
     private var mW = 390;
     private var mH = 390;
     private var mCx = 195;
+    private var mCy = 195;
 
     private var mLowPower = false;
     private var mUse24Pref = false;
@@ -61,8 +72,8 @@ class CasioWorldTimeView extends Ui.WatchFace {
     // Seconds region cache for onPartialUpdate.
     private var mSecX = 0;
     private var mSecY = 0;
-    private var mSecW = 20;
-    private var mSecH = 34;
+    private var mSecW = 19;
+    private var mSecH = 32;
     private var mSecT = 5;
     private var mSecGap = 5;
     private var mSecClipX = 0;
@@ -70,8 +81,6 @@ class CasioWorldTimeView extends Ui.WatchFace {
     private var mSecClipW = 0;
     private var mSecClipH = 0;
 
-    // Dot-matrix world map: [row, startCol, endCol] of "land", 56 cols x 20 rows.
-    private const MAP_COLS = 56;
     private var mMap = [
         [0, 22, 24],
         [1, 8, 16], [1, 22, 25], [1, 28, 31], [1, 34, 52],
@@ -103,6 +112,7 @@ class CasioWorldTimeView extends Ui.WatchFace {
         mW = dc.getWidth();
         mH = dc.getHeight();
         mCx = mW / 2;
+        mCy = mH / 2;
     }
 
     function onShow() {
@@ -120,38 +130,34 @@ class CasioWorldTimeView extends Ui.WatchFace {
         } catch (e) {
             v = null;
         }
-        if (v == null) {
-            return def;
-        }
-        return v;
+        return (v == null) ? def : v;
     }
 
     // ------------------------------------------------------------------
-    // Full redraw (wake + once per minute).
-    // ------------------------------------------------------------------
     function onUpdate(dc) {
         loadSettings();
-
         var clock = Sys.getClockTime();
         var settings = Sys.getDeviceSettings();
 
-        // Black resin case.
-        dc.setColor(C_CASE, C_CASE);
+        // Resin body.
+        dc.setColor(C_RESIN, C_RESIN);
         dc.clear();
 
-        drawCase(dc);
+        drawStraps(dc);
+        drawBezel(dc);
+        drawPushers(dc);
         drawCaseText(dc);
+
         drawPanel(dc);
         drawGlint(dc);
-        drawActivityWindow(dc);
-        drawAlarmWindow(dc, settings);
-        drawWorldMap(dc);
+        drawActivityField(dc);
+        drawAlarmField(dc, settings);
+        drawWorldMap(dc, clock);
         drawInfoRow(dc, clock);
         drawTime(dc, clock, settings);
         drawStatus(dc, settings);
     }
 
-    // Per-second seconds update.
     function onPartialUpdate(dc) {
         if (!mShowSeconds || mLowPower || mSecClipW <= 0) {
             return;
@@ -160,8 +166,7 @@ class CasioWorldTimeView extends Ui.WatchFace {
         dc.setClip(mSecClipX, mSecClipY, mSecClipW, mSecClipH);
         dc.setColor(C_PANEL, C_PANEL);
         dc.clear();
-        drawSegString(dc, clock.sec.format("%02d"), mSecX, mSecY,
-            mSecW, mSecH, mSecT, mSecGap);
+        drawSegString(dc, clock.sec.format("%02d"), mSecX, mSecY, mSecW, mSecH, mSecT, mSecGap);
         dc.clearClip();
     }
 
@@ -175,85 +180,128 @@ class CasioWorldTimeView extends Ui.WatchFace {
         Ui.requestUpdate();
     }
 
-    // ------------------------------------------------------------------
-    // Case (resin) printed text on the black surround.
-    // ------------------------------------------------------------------
-    private function drawCaseText(dc) {
-        dc.setColor(C_CASETX, Gfx.COLOR_TRANSPARENT);
-        dc.drawText(mCx, 30, Gfx.FONT_TINY, "CASIO",
-            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(mCx, 52, Gfx.FONT_XTINY, "WORLD TIME",
-            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(125, 344, Gfx.FONT_XTINY, "ILLUMINATOR",
-            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(270, 344, Gfx.FONT_XTINY, "WR 100M",
-            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(mCx, 364, Gfx.FONT_XTINY, "AE-1200WH",
-            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+    // ==================================================================
+    // Physical hardware
+    // ==================================================================
+
+    private function drawStraps(dc) {
+        drawOneStrap(dc, true);
+        drawOneStrap(dc, false);
     }
 
-    // ------------------------------------------------------------------
-    // Resin case rim + the four Casio pushers.
-    // ------------------------------------------------------------------
-    private function drawCase(dc) {
-        dc.setColor(C_CASEHI, Gfx.COLOR_TRANSPARENT);
+    private function drawOneStrap(dc, top) {
+        var y0 = top ? 0 : mH;
+        var y1 = top ? 70 : (mH - 70);
+        var wt = 150;
+        var wb = 188;
+        dc.setColor(C_STRAP, Gfx.COLOR_TRANSPARENT);
+        dc.fillPolygon([
+            [mCx - wt / 2, y0], [mCx + wt / 2, y0],
+            [mCx + wb / 2, y1], [mCx - wb / 2, y1]
+        ]);
+        dc.setColor(C_STRAPHI, Gfx.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
-        dc.drawCircle(mCx, mH / 2, mCx - 2);
+        dc.drawLine(mCx - wt / 2 + 4, y0, mCx - wb / 2 + 4, y1);
+        dc.setColor(C_STRAPSH, Gfx.COLOR_TRANSPARENT);
+        dc.drawLine(mCx + wt / 2 - 4, y0, mCx + wb / 2 - 4, y1);
 
-        var angles = [150, 210, 30, 330];
-        for (var i = 0; i < angles.size(); i++) {
-            var a = Math.toRadians(angles[i]);
-            var bxc = (mCx + 183 * Math.cos(a)).toNumber();
-            var byc = (mH / 2 - 183 * Math.sin(a)).toNumber();
-            dc.setColor(C_BTN, Gfx.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(bxc - 9, byc - 6, 18, 12, 3);
-            dc.setColor(C_BTNHI, Gfx.COLOR_TRANSPARENT);
-            dc.setPenWidth(1);
-            dc.drawRoundedRectangle(bxc - 9, byc - 6, 18, 12, 3);
+        // Keeper loop.
+        var ky = top ? 22 : (mH - 22);
+        var kw = (wb * 0.8).toNumber();
+        dc.setColor(C_STRAPHI, Gfx.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(mCx - kw / 2, ky - 6, kw, 12, 2);
+        dc.setColor(C_STRAP, Gfx.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(mCx - kw / 2 + 2, ky - 4, kw - 4, 8, 2);
+
+        // Buckle holes on the lower strap.
+        if (!top) {
+            dc.setColor(C_STRAPSH, Gfx.COLOR_TRANSPARENT);
+            for (var i = 0; i < 3; i++) {
+                dc.fillCircle(mCx, mH - 42 - i * 12, 2);
+            }
         }
     }
 
-    // ------------------------------------------------------------------
-    // LCD panel.
-    // ------------------------------------------------------------------
-    private function drawPanel(dc) {
-        dc.setColor(C_EDGE, Gfx.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(PX - 3, PY - 3, PW + 6, PH + 6, 18);
-        dc.setColor(C_PANEL, Gfx.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(PX, PY, PW, PH, 15);
+    private function drawBezel(dc) {
+        dc.setPenWidth(2);
+        dc.setColor(C_RESINHI, Gfx.COLOR_TRANSPARENT);
+        dc.drawRoundedRectangle(34, 62, 322, 266, 46);
+        dc.setColor(C_RESINSH, Gfx.COLOR_TRANSPARENT);
+        dc.drawRoundedRectangle(40, 68, 310, 254, 40);
+        // Top-left moulding highlight.
+        dc.setColor(C_RESINHI2, Gfx.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawArc(mCx, mCy, 150, Gfx.ARC_COUNTER_CLOCKWISE, 108, 162);
     }
 
-    // A subtle glass reflection streak near the top-left of the panel.
+    private function drawPushers(dc) {
+        drawPusher(dc, 40, 120);
+        drawPusher(dc, 40, 270);
+        drawPusher(dc, mW - 40, 120);
+        drawPusher(dc, mW - 40, 270);
+    }
+
+    private function drawPusher(dc, cx, cy) {
+        // Resin guard nubs.
+        dc.setColor(C_RESINHI, Gfx.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(cx - 7, cy - 18, 14, 8, 3);
+        dc.fillRoundedRectangle(cx - 7, cy + 10, 14, 8, 3);
+        // Metal dome.
+        dc.setColor(C_METALSH, Gfx.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, 10);
+        dc.setColor(C_METAL, Gfx.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, 9);
+        dc.setColor(C_METALHI, Gfx.COLOR_TRANSPARENT);
+        dc.fillCircle(cx - 2, cy - 2, 5);
+    }
+
+    private function drawCaseText(dc) {
+        dc.setColor(C_PRINT, Gfx.COLOR_TRANSPARENT);
+        dc.drawText(98, 60, Gfx.FONT_TINY, "CASIO",
+            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(296, 56, Gfx.FONT_XTINY, "ILLUMINATOR",
+            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(C_PRINTDM, Gfx.COLOR_TRANSPARENT);
+        dc.drawText(296, 70, Gfx.FONT_XTINY, "AE-1200WH",
+            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(96, 334, Gfx.FONT_XTINY, "WR 10BAR",
+            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(298, 334, Gfx.FONT_XTINY, "MODULE 3198",
+            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+    }
+
+    // ==================================================================
+    // LCD
+    // ==================================================================
+
+    private function drawPanel(dc) {
+        dc.setColor(C_FRAME, Gfx.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(PX - 4, PY - 4, PW + 8, PH + 8, 24);
+        dc.setColor(C_PANEL, Gfx.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(PX, PY, PW, PH, 20);
+        dc.setColor(C_PANELSH, Gfx.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawRoundedRectangle(PX, PY, PW, PH, 20);
+    }
+
     private function drawGlint(dc) {
         dc.setColor(C_GLINT, Gfx.COLOR_TRANSPARENT);
         dc.setPenWidth(3);
-        dc.drawLine(PX + 14, PY + 7, PX + 38, PY + 7);
+        dc.drawLine(PX + 16, PY + 9, PX + 42, PY + 9);
         dc.setPenWidth(2);
-        dc.drawLine(PX + 14, PY + 12, PX + 28, PY + 12);
+        dc.drawLine(PX + 16, PY + 14, PX + 30, PY + 14);
     }
 
-    private function drawWindowFrame(dc, x, y, w, h) {
-        dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        dc.drawRoundedRectangle(x, y, w, h, 4);
-    }
-
-    // ------------------------------------------------------------------
-    // Top-left: live heart rate + daily steps.
-    // ------------------------------------------------------------------
-    private function drawActivityWindow(dc) {
-        var x = 62; var y = 88; var w = 92; var h = 50;
-        drawWindowFrame(dc, x, y, w, h);
-
+    // Top-left: heart rate + steps (LCD-native, no box).
+    private function drawActivityField(dc) {
         var hr = currentHeartRate();
-        var hrStr = (hr != null) ? hr.format("%d") : "--";
-        var hx = x + 16;
-        drawHeart(dc, hx, y + 14, C_INK);
+        var hx = PX + 26;
+        drawHeart(dc, hx, PY + 22, C_INK);
         if (hr != null) {
-            drawSegString(dc, hrStr, hx + 10, y + 6, 12, 18, 3, 4);
+            drawSegString(dc, hr.format("%d"), hx + 10, PY + 13, 12, 18, 3, 4);
         } else {
             dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
-            dc.drawText(hx + 22, y + 14, Gfx.FONT_XTINY, "--",
+            dc.drawText(hx + 24, PY + 22, Gfx.FONT_XTINY, "--",
                 Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
         }
 
@@ -263,56 +311,46 @@ class CasioWorldTimeView extends Ui.WatchFace {
             steps = info.steps;
         }
         dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
-        dc.drawText(x + w / 2, y + h - 9, Gfx.FONT_XTINY, steps.format("%d") + " STEPS",
-            Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(PX + 12, PY + 46, Gfx.FONT_XTINY, steps.format("%d") + " ST",
+            Gfx.TEXT_JUSTIFY_LEFT | Gfx.TEXT_JUSTIFY_VCENTER);
     }
 
-    // ------------------------------------------------------------------
     // Top-right: active alarm count.
-    // ------------------------------------------------------------------
-    private function drawAlarmWindow(dc, settings) {
-        var x = 236; var y = 88; var w = 92; var h = 50;
-        drawWindowFrame(dc, x, y, w, h);
-
+    private function drawAlarmField(dc, settings) {
         var count = 0;
         if (settings has :alarmCount && settings.alarmCount != null) {
             count = settings.alarmCount;
         }
         var active = (count > 0);
+        var ax = PX + PW - 26;
 
-        var bcx = x + 18; var bcy = y + 18;
-        drawBell(dc, bcx, bcy, active ? C_INK : C_DIM);
+        dc.setColor(active ? C_INK : C_DIM, Gfx.COLOR_TRANSPARENT);
+        drawBell(dc, ax - 30, PY + 22);
 
         if (active) {
-            drawSegString(dc, count.format("%d"), bcx + 18, y + 6, 16, 24, 4, 4);
+            drawSegString(dc, count.format("%d"), ax - 14, PY + 11, 14, 22, 4, 4);
             dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
-            dc.drawText(x + w / 2, y + h - 9, Gfx.FONT_XTINY, "ALARM ON",
-                Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+            dc.drawText(PX + PW - 12, PY + 46, Gfx.FONT_XTINY, "ALARM ON",
+                Gfx.TEXT_JUSTIFY_RIGHT | Gfx.TEXT_JUSTIFY_VCENTER);
         } else {
             dc.setColor(C_DIM, Gfx.COLOR_TRANSPARENT);
-            dc.drawText(bcx + 30, y + 18, Gfx.FONT_SMALL, "OFF",
+            dc.drawText(ax - 4, PY + 22, Gfx.FONT_SMALL, "OFF",
                 Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
-            dc.drawText(x + w / 2, y + h - 9, Gfx.FONT_XTINY, "NO ALARM",
-                Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
+            dc.drawText(PX + PW - 12, PY + 46, Gfx.FONT_XTINY, "NO ALARM",
+                Gfx.TEXT_JUSTIFY_RIGHT | Gfx.TEXT_JUSTIFY_VCENTER);
         }
     }
 
     // ------------------------------------------------------------------
-    // World map (dot matrix) shaded for day/night, with sun + moon markers.
+    // World map shaded for day/night + sun/moon + home cursor.
     // ------------------------------------------------------------------
-    private const MAP_W = 252;
-    private const MAP_X0 = 195 - 126;   // mCx - MAP_W/2
-    private const MAP_Y0 = 144;
-    private const MAP_ROWS = 20;
-
-    private function drawWorldMap(dc) {
+    private function drawWorldMap(dc, clock) {
         var colSp = MAP_W.toFloat() / MAP_COLS;
-        var rowSp = 3.3;
+        var rowSp = 3.2;
 
-        // Sub-solar point from current UTC time.
         var u = Gregorian.utcInfo(Time.now(), Time.FORMAT_SHORT);
         var uh = u.hour + u.min / 60.0;
-        var n = (u.month - 1) * 30.4 + u.day;            // ~day of year
+        var n = (u.month - 1) * 30.4 + u.day;
         var decl = Math.toRadians(-23.44 * Math.cos(Math.toRadians(360.0 * (n + 10) / 365.0)));
         var lonSun = 15.0 * (12.0 - uh);
 
@@ -329,7 +367,18 @@ class CasioWorldTimeView extends Ui.WatchFace {
             }
         }
 
-        // Sun (day side) and moon (night side) markers.
+        // Home-city pointer above the map (the blinking AE1200 cursor).
+        var off = 0;
+        if (clock has :timeZoneOffset && clock.timeZoneOffset != null) {
+            off = (clock.timeZoneOffset / 3600).toNumber();
+        }
+        var homeLon = off * 15;
+        if (homeLon > 180) { homeLon = 180; }
+        if (homeLon < -180) { homeLon = -180; }
+        var hxp = mapPx(homeLon, colSp);
+        dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
+        dc.fillPolygon([[hxp - 4, MAP_Y0 - 9], [hxp + 4, MAP_Y0 - 9], [hxp, MAP_Y0 - 3]]);
+
         drawSun(dc, wrapLon(lonSun), Math.toDegrees(decl), colSp, rowSp);
         drawMoon(dc, wrapLon(lonSun + 180), -Math.toDegrees(decl), colSp, rowSp);
     }
@@ -337,8 +386,7 @@ class CasioWorldTimeView extends Ui.WatchFace {
     private function isDay(lon, lat, decl, lonSun) {
         var hh = Math.toRadians(lon - lonSun);
         var la = Math.toRadians(lat);
-        return (Math.sin(la) * Math.sin(decl)
-            + Math.cos(la) * Math.cos(decl) * Math.cos(hh)) > 0;
+        return (Math.sin(la) * Math.sin(decl) + Math.cos(la) * Math.cos(decl) * Math.cos(hh)) > 0;
     }
 
     private function wrapLon(lon) {
@@ -366,8 +414,8 @@ class CasioWorldTimeView extends Ui.WatchFace {
         dc.setPenWidth(1);
         for (var a = 0; a < 360; a += 45) {
             var r = Math.toRadians(a);
-            dc.drawLine((x + 5 * Math.cos(r)).toNumber(), (y + 5 * Math.sin(r)).toNumber(),
-                        (x + 7 * Math.cos(r)).toNumber(), (y + 7 * Math.sin(r)).toNumber());
+            dc.drawLine((x + 4 * Math.cos(r)).toNumber(), (y + 4 * Math.sin(r)).toNumber(),
+                        (x + 6 * Math.cos(r)).toNumber(), (y + 6 * Math.sin(r)).toNumber());
         }
     }
 
@@ -381,24 +429,22 @@ class CasioWorldTimeView extends Ui.WatchFace {
     }
 
     // ------------------------------------------------------------------
-    // Info row above the time: day-of-week | zone | date.
-    // ------------------------------------------------------------------
     private function drawInfoRow(dc, clock) {
         var infoM = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
         var infoS = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var dow = stringUpper(infoM.day_of_week);
         var date = infoS.month.format("%d") + "-" + infoS.day.format("%d");
+        var rowy = 208;
 
         dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
-        dc.drawText(PX + 18, 224, Gfx.FONT_XTINY, dow,
+        dc.drawText(PX + 16, rowy, Gfx.FONT_XTINY, dow,
             Gfx.TEXT_JUSTIFY_LEFT | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(PX + PW - 18, 224, Gfx.FONT_XTINY, date,
+        dc.drawText(PX + PW - 16, rowy, Gfx.FONT_XTINY, date,
             Gfx.TEXT_JUSTIFY_RIGHT | Gfx.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(mCx, 224, Gfx.FONT_XTINY, cityCode(clock),
+        dc.drawText(mCx, rowy, Gfx.FONT_XTINY, cityCode(clock),
             Gfx.TEXT_JUSTIFY_CENTER | Gfx.TEXT_JUSTIFY_VCENTER);
     }
 
-    // A representative 3-letter world-time city code for the home time zone.
     private function cityCode(clock) {
         var off = 0;
         if (clock has :timeZoneOffset && clock.timeZoneOffset != null) {
@@ -411,19 +457,47 @@ class CasioWorldTimeView extends Ui.WatchFace {
             4 => "DXB", 5 => "KHI", 6 => "DAC", 7 => "BKK", 8 => "HKG",
             9 => "TYO", 10 => "SYD", 11 => "NOU", 12 => "AKL"
         };
-        if (codes.hasKey(off)) {
-            return codes[off];
-        }
-        return "GMT";
+        return codes.hasKey(off) ? codes[off] : "GMT";
     }
 
     // ------------------------------------------------------------------
-    // Status strip: Bluetooth (left) + battery (right), LCD style.
+    private function drawTime(dc, clock, settings) {
+        var use24 = mUse24Pref || settings.is24Hour;
+        var hour = clock.hour;
+        if (!use24) {
+            hour = hour % 12;
+            if (hour == 0) { hour = 12; }
+        }
+        var hh = use24 ? hour.format("%02d") : ((hour < 10) ? (" " + hour.format("%d")) : hour.format("%d"));
+        var timeStr = hh + ":" + clock.min.format("%02d");
+
+        var dw = 37; var dh = 58; var dt = 8; var dg = 7;
+        var sw = 19; var sh = 32; var st = 5; var sg = 5;
+        var gapTS = 11;
+
+        var tw = 4 * dw + 3 * dg + (dt + dg);
+        var showSec = mShowSeconds && !mLowPower;
+        var secW = 2 * sw + sg;
+        var total = tw + (showSec ? (gapTS + secW) : 0);
+        var tx = mCx - total / 2;
+        var ty = 222;
+
+        var endx = drawSegString(dc, timeStr, tx, ty, dw, dh, dt, dg);
+
+        if (showSec) {
+            var sx = endx + gapTS;
+            var sy = ty + dh - sh;
+            drawSegString(dc, clock.sec.format("%02d"), sx, sy, sw, sh, st, sg);
+            mSecX = sx; mSecY = sy; mSecW = sw; mSecH = sh; mSecT = st; mSecGap = sg;
+            mSecClipX = sx - 3; mSecClipY = sy - 3; mSecClipW = secW + 6; mSecClipH = sh + 6;
+        } else {
+            mSecClipW = 0;
+        }
+    }
+
     // ------------------------------------------------------------------
     private function drawStatus(dc, settings) {
-        var y = 312;
-
-        // Bluetooth, only when a phone is connected.
+        var y = 296;
         var connected = false;
         if (settings has :phoneConnected && settings.phoneConnected != null) {
             connected = settings.phoneConnected;
@@ -439,13 +513,12 @@ class CasioWorldTimeView extends Ui.WatchFace {
             dc.drawLine(bx + 4, y + 3, bx - 3, y - 3);
         }
 
-        // Battery gauge.
         var level = 1.0;
         var stats = Sys.getSystemStats();
         if (stats != null && stats.battery != null) {
             level = stats.battery / 100.0;
         }
-        var bxr = PX + PW - 46;
+        var bxr = PX + PW - 48;
         dc.setColor(C_INK, Gfx.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawRectangle(bxr, y - 6, 22, 12);
@@ -459,54 +532,9 @@ class CasioWorldTimeView extends Ui.WatchFace {
             Gfx.TEXT_JUSTIFY_RIGHT | Gfx.TEXT_JUSTIFY_VCENTER);
     }
 
-    // ------------------------------------------------------------------
-    // Main 7-segment time + small seconds.
-    // ------------------------------------------------------------------
-    private function drawTime(dc, clock, settings) {
-        var use24 = mUse24Pref || settings.is24Hour;
-        var hour = clock.hour;
-        if (!use24) {
-            hour = hour % 12;
-            if (hour == 0) {
-                hour = 12;
-            }
-        }
-        var hh = use24 ? hour.format("%02d") : ((hour < 10) ? (" " + hour.format("%d")) : hour.format("%d"));
-        var timeStr = hh + ":" + clock.min.format("%02d");
-
-        var dw = 38; var dh = 62; var dt = 8; var dg = 7;
-        var sw = 20; var sh = 34; var st = 5; var sg = 5;
-        var gapTS = 12;
-
-        var tw = 4 * dw + 3 * dg + (dt + dg);  // 4 digits + colon
-        var showSec = mShowSeconds && !mLowPower;
-        var secW = 2 * sw + sg;
-        var total = tw + (showSec ? (gapTS + secW) : 0);
-        var tx = mCx - total / 2;
-        var ty = 238;
-
-        var endx = drawSegString(dc, timeStr, tx, ty, dw, dh, dt, dg);
-
-        if (showSec) {
-            var sx = endx + gapTS;
-            var sy = ty + dh - sh;
-            drawSegString(dc, clock.sec.format("%02d"), sx, sy, sw, sh, st, sg);
-
-            mSecX = sx; mSecY = sy; mSecW = sw; mSecH = sh; mSecT = st; mSecGap = sg;
-            mSecClipX = sx - 3;
-            mSecClipY = sy - 3;
-            mSecClipW = secW + 6;
-            mSecClipH = sh + 6;
-        } else {
-            mSecClipW = 0;
-        }
-    }
-
-    // ------------------------------------------------------------------
-    // 7-segment rendering.
-    // ------------------------------------------------------------------
-
-    // Draw a string of 7-seg digits (and ':'). Returns the x after the string.
+    // ==================================================================
+    // 7-segment digits
+    // ==================================================================
     private function drawSegString(dc, text, x, y, w, h, t, gap) {
         var cx = x;
         for (var i = 0; i < text.length(); i++) {
@@ -526,7 +554,6 @@ class CasioWorldTimeView extends Ui.WatchFace {
         return cx;
     }
 
-    // Segment letters lit for each character.
     private function segmentsFor(ch) {
         if (ch.equals("0")) { return "abcdef"; }
         if (ch.equals("1")) { return "bc"; }
@@ -538,25 +565,23 @@ class CasioWorldTimeView extends Ui.WatchFace {
         if (ch.equals("7")) { return "abc"; }
         if (ch.equals("8")) { return "abcdefg"; }
         if (ch.equals("9")) { return "abcdfg"; }
-        return "";  // blank -> only ghosts
+        return "";
     }
 
     private function drawDigit(dc, x, y, w, h, t, ch) {
         var on = segmentsFor(ch);
         var half = h / 2;
-        // Each segment: [name, isHorizontal, lx, ty, length]
-        drawOneSeg(dc, on, "a", true,  x,         y,              w,           t, y, h);
-        drawOneSeg(dc, on, "g", true,  x,         y + half - t/2, w,           t, y, h);
-        drawOneSeg(dc, on, "d", true,  x,         y + h - t,      w,           t, y, h);
-        drawOneSeg(dc, on, "f", false, x,         y,              half + t/2,  t, y, h);
-        drawOneSeg(dc, on, "b", false, x + w - t, y,              half + t/2,  t, y, h);
-        drawOneSeg(dc, on, "e", false, x,         y + half - t/2, half + t/2,  t, y, h);
-        drawOneSeg(dc, on, "c", false, x + w - t, y + half - t/2, half + t/2,  t, y, h);
+        drawOneSeg(dc, on, "a", true,  x,         y,              w,          t, y, h);
+        drawOneSeg(dc, on, "g", true,  x,         y + half - t/2, w,          t, y, h);
+        drawOneSeg(dc, on, "d", true,  x,         y + h - t,      w,          t, y, h);
+        drawOneSeg(dc, on, "f", false, x,         y,              half + t/2, t, y, h);
+        drawOneSeg(dc, on, "b", false, x + w - t, y,              half + t/2, t, y, h);
+        drawOneSeg(dc, on, "e", false, x,         y + half - t/2, half + t/2, t, y, h);
+        drawOneSeg(dc, on, "c", false, x + w - t, y + half - t/2, half + t/2, t, y, h);
     }
 
     private function drawOneSeg(dc, on, name, horiz, lx, ty, L, t, ytop, dh) {
-        var color = (on.find(name) != null) ? C_INK : C_GHOST;
-        dc.setColor(color, Gfx.COLOR_TRANSPARENT);
+        dc.setColor((on.find(name) != null) ? C_INK : C_GHOST, Gfx.COLOR_TRANSPARENT);
         var pts;
         if (horiz) {
             pts = [
@@ -569,25 +594,22 @@ class CasioWorldTimeView extends Ui.WatchFace {
             ];
         } else {
             pts = [
-                [sx(lx + t/2, ty,       ytop, dh), ty],
-                [sx(lx + t,   ty + t/2, ytop, dh), ty + t/2],
+                [sx(lx + t/2, ty,         ytop, dh), ty],
+                [sx(lx + t,   ty + t/2,   ytop, dh), ty + t/2],
                 [sx(lx + t,   ty + L-t/2, ytop, dh), ty + L-t/2],
-                [sx(lx + t/2, ty + L,   ytop, dh), ty + L],
+                [sx(lx + t/2, ty + L,     ytop, dh), ty + L],
                 [sx(lx,       ty + L-t/2, ytop, dh), ty + L-t/2],
-                [sx(lx,       ty + t/2, ytop, dh), ty + t/2]
+                [sx(lx,       ty + t/2,   ytop, dh), ty + t/2]
             ];
         }
         dc.fillPolygon(pts);
     }
 
-    // Apply a rightward italic slant: top of a glyph shifts right.
     private function sx(x, y, ytop, dh) {
         return (x + (ytop + dh - y) * 0.10).toNumber();
     }
 
-    // ------------------------------------------------------------------
-    // Small icons.
-    // ------------------------------------------------------------------
+    // ==================================================================
     private function drawHeart(dc, cx, cy, color) {
         dc.setColor(color, Gfx.COLOR_TRANSPARENT);
         dc.fillCircle(cx - 2, cy - 1, 2);
@@ -595,20 +617,17 @@ class CasioWorldTimeView extends Ui.WatchFace {
         dc.fillPolygon([[cx - 4, cy], [cx + 4, cy], [cx, cy + 5]]);
     }
 
-    private function drawBell(dc, cx, cy, color) {
-        dc.setColor(color, Gfx.COLOR_TRANSPARENT);
+    private function drawBell(dc, cx, cy) {
+        // colour already set by caller
         dc.fillPolygon([
-            [cx - 7, cy + 6], [cx - 6, cy + 2], [cx - 4, cy - 4],
-            [cx - 2, cy - 7], [cx, cy - 8], [cx + 2, cy - 7],
-            [cx + 4, cy - 4], [cx + 6, cy + 2], [cx + 7, cy + 6]
+            [cx - 6, cy + 5], [cx - 5, cy + 1], [cx - 3, cy - 4],
+            [cx - 1, cy - 6], [cx + 1, cy - 6], [cx + 3, cy - 4],
+            [cx + 5, cy + 1], [cx + 6, cy + 5]
         ]);
-        dc.fillRectangle(cx - 8, cy + 6, 16, 2);
-        dc.fillCircle(cx, cy + 10, 2);
+        dc.fillRectangle(cx - 7, cy + 5, 14, 2);
+        dc.fillCircle(cx, cy + 8, 1);
     }
 
-    // ------------------------------------------------------------------
-    // Helpers.
-    // ------------------------------------------------------------------
     private function currentHeartRate() {
         try {
             if (Activity has :getActivityInfo) {
@@ -620,10 +639,10 @@ class CasioWorldTimeView extends Ui.WatchFace {
             if (ActivityMonitor has :getHeartRateHistory) {
                 var it = ActivityMonitor.getHeartRateHistory(1, true);
                 if (it != null) {
-                    var sample = it.next();
-                    if (sample != null && sample.heartRate != null
-                            && sample.heartRate != ActivityMonitor.INVALID_HR_SAMPLE) {
-                        return sample.heartRate;
+                    var s = it.next();
+                    if (s != null && s.heartRate != null
+                            && s.heartRate != ActivityMonitor.INVALID_HR_SAMPLE) {
+                        return s.heartRate;
                     }
                 }
             }
@@ -634,9 +653,7 @@ class CasioWorldTimeView extends Ui.WatchFace {
     }
 
     private function stringUpper(s) {
-        if (s == null) {
-            return "";
-        }
+        if (s == null) { return ""; }
         return s.toString().toUpper();
     }
 }
