@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cover Letter</title>
+  <style>
+    :root {
+      --ink: #1a1a2e;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --line: #e5e7eb;
+      --paper: #ffffff;
+      --bg: #eef1f6;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Georgia", "Times New Roman", serif;
+      line-height: 1.6;
+    }
+
+    .page {
+      max-width: 8.5in;
+      min-height: 11in;
+      margin: 32px auto;
+      background: var(--paper);
+      padding: 0.9in 1in;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+      border-radius: 2px;
+    }
+
+    /* ---------- Header ---------- */
+    header {
+      border-bottom: 3px solid var(--accent);
+      padding-bottom: 20px;
+      margin-bottom: 8px;
+    }
+
+    .name {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .title {
+      font-size: 15px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 6px 0 0;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .contact {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 22px;
+      margin-top: 16px;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .contact span { white-space: nowrap; }
+
+    /* ---------- Meta (date + recipient) ---------- */
+    .date {
+      margin: 28px 0 24px;
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    .recipient {
+      margin-bottom: 28px;
+      font-size: 15px;
+    }
+
+    .recipient .strong { font-weight: 700; }
+
+    /* ---------- Body ---------- */
+    .greeting {
+      margin-bottom: 18px;
+      font-size: 15px;
+    }
+
+    .body p {
+      margin: 0 0 16px;
+      font-size: 15px;
+      text-align: justify;
+    }
+
+    /* ---------- Sign-off ---------- */
+    .signoff {
+      margin-top: 32px;
+      font-size: 15px;
+    }
+
+    .signoff .sign-name {
+      font-weight: 700;
+      margin-top: 36px;
+    }
+
+    /* ---------- Blank-field styling ---------- */
+    .blank {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* ---------- Print ---------- */
+    @media print {
+      html, body { background: #fff; }
+      .page {
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+        max-width: none;
+        min-height: auto;
+        padding: 0.75in;
+      }
+      @page { margin: 0; }
+    }
+
+    @media (max-width: 700px) {
+      .page { padding: 0.6in; margin: 16px; }
+      .name { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1 class="name">[ Your Name ]</h1>
+      <p class="title">[ Your Profession / Title ]</p>
+      <div class="contact">
+        <span>[ Email Address ]</span>
+        <span>[ Phone Number ]</span>
+        <span>[ City, State ]</span>
+        <span>[ LinkedIn / Portfolio ]</span>
+      </div>
+    </header>
+
+    <p class="date blank">[ Month Day, Year ]</p>
+
+    <div class="recipient">
+      <div class="strong blank">[ Hiring Manager's Name ]</div>
+      <div class="blank">[ Their Title ]</div>
+      <div class="blank">[ Company Name ]</div>
+      <div class="blank">[ Company Address ]</div>
+    </div>
+
+    <p class="greeting">Dear <span class="blank">[ Hiring Manager's Name ]</span>,</p>
+
+    <div class="body">
+      <p class="blank">
+        [ Opening paragraph — Introduce yourself, name the role you're applying
+        for, and share a sentence on why you're excited about this company. ]
+      </p>
+      <p class="blank">
+        [ Body paragraph — Highlight your most relevant experience and
+        accomplishments. Connect your skills to what this role needs, and use a
+        concrete example or result where you can. ]
+      </p>
+      <p class="blank">
+        [ Body paragraph (optional) — Show that you understand the company and
+        explain what specifically draws you to it and how you'd add value. ]
+      </p>
+      <p class="blank">
+        [ Closing paragraph — Thank them for their time, restate your interest,
+        and invite them to the next step such as an interview. ]
+      </p>
+    </div>
+
+    <div class="signoff">
+      <div>Sincerely,</div>
+      <div class="sign-name blank">[ Your Name ]</div>
+    </div>
+  </main>
+</body>
+</html>
