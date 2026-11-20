@@ -6,7 +6,10 @@
   "use strict";
 
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const finePointer = window.matchMedia("(pointer: fine)").matches;
+  // Desktop-only features (smooth scroll, custom cursor, hover-to-play) require a real
+  // hovering mouse/trackpad — NOT just a "fine" pointer (phones/foldables/pens report
+  // fine but can't hover, which used to lock those features on touch).
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   const $  = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
   const lerp = (a, b, n) => a + (b - a) * n;
@@ -24,16 +27,16 @@
     const EASE_OUT = "transform 0.55s cubic-bezier(0.76, 0, 0.24, 1)";
 
     // ENTER: on a navigation the curtain already covers (CSS .vt-nav) — lift it away.
+    // Guarded with timeouts so it can NEVER stay stuck covering the page (e.g. if
+    // requestAnimationFrame is paused on a backgrounded tab, or transitionend misfires).
     if (introSeen) {
       curtain.style.transform = "translateY(0)";
-      requestAnimationFrame(() => {
-        curtain.style.transition = EASE_OUT;
-        requestAnimationFrame(() => { curtain.style.transform = "translateY(-100%)"; });
-      });
-      curtain.addEventListener("transitionend", () => {
-        curtain.style.transition = "none";
-        curtain.style.transform = "translateY(100%)";   // park below for the next exit
-      }, { once: true });
+      const lift = () => { curtain.style.transition = EASE_OUT; curtain.style.transform = "translateY(-100%)"; };
+      const park = () => { curtain.style.transition = "none"; curtain.style.transform = "translateY(100%)"; };
+      requestAnimationFrame(() => requestAnimationFrame(lift));
+      setTimeout(lift, 60);     // fallback lift if rAF is throttled
+      curtain.addEventListener("transitionend", park, { once: true });
+      setTimeout(park, 1200);   // fallback park so the curtain always clears
     }
 
     // EXIT: cover the screen, then navigate (so the reload happens behind the curtain).
@@ -289,13 +292,45 @@
     });
   }
 
-  /* ---------- Video-on-hover (no-op until a <video> is added to a card) ---------- */
-  $$(".fcard__media, .card__media").forEach((media) => {
-    const v = media.querySelector("video"); if (!v) return;
-    const trigger = media.closest("a") || media;
-    trigger.addEventListener("mouseenter", () => { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); });
-    trigger.addEventListener("mouseleave", () => { v.pause(); try { v.currentTime = 0; } catch (_) {} });
-  });
+  /* ---------- Video playback: hover on desktop, autoplay-in-view + tap on touch ---------- */
+  (function () {
+    const medias = $$(".fcard__media, .card__media").filter((m) => m.querySelector("video"));
+    if (!medias.length) return;
+    const safePlay = (v) => { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); };
+
+    if (finePointer) {
+      medias.forEach((media) => {
+        const v = media.querySelector("video");
+        const trigger = media.closest("a") || media;
+        trigger.addEventListener("mouseenter", () => safePlay(v));
+        trigger.addEventListener("mouseleave", () => { v.pause(); try { v.currentTime = 0; } catch (_) {} });
+      });
+      return;
+    }
+
+    /* Touch / no-hover devices: play clips automatically while on screen, show a ▶ cue,
+       and let a tap toggle them (in case autoplay is blocked). */
+    document.body.classList.add("touch-clips");
+    medias.forEach((media) => {
+      const v = media.querySelector("video");
+      v.addEventListener("playing", () => media.classList.add("is-playing"));
+      v.addEventListener("pause", () => media.classList.remove("is-playing"));
+      if (!media.closest("a")) {
+        media.addEventListener("click", () => { if (v.paused) safePlay(v); else v.pause(); });
+      }
+    });
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((en) => {
+          const v = en.target.querySelector("video"); if (!v) return;
+          if (en.isIntersecting) safePlay(v); else v.pause();
+        });
+      }, { threshold: 0.35 });
+      medias.forEach((m) => io.observe(m));
+    } else {
+      medias.forEach((m) => safePlay(m.querySelector("video")));
+    }
+  })();
 
   /* ---------- Theme toggle (persisted; applied pre-paint by inline <head> script) ---------- */
   (function () {

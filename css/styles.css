@@ -467,6 +467,20 @@ body.cursor-on, body.cursor-on * { cursor: none; }
 .fcard__link:hover .fcard__media img, .card__link:hover .card__media img,
 .fcard__link:hover .fcard__media video, .card__link:hover .card__media video { transform: scale(1.06); }
 
+/* Touch / no-hover devices: a ▶ cue on video clips (fades once the clip is playing),
+   and the featured cards surface their "View project" label. */
+.touch-clips .card__media:has(video)::after {
+  content: "\25B6"; position: absolute; z-index: 3; left: 50%; top: 50%;
+  transform: translate(-50%, -50%); padding-left: 0.12em;
+  width: 2.8rem; height: 2.8rem; display: grid; place-items: center;
+  font-size: 0.95rem; color: var(--badge-text); background: var(--badge);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  border: 1px solid rgba(220, 206, 245, 0.35); border-radius: 50%;
+  opacity: 1; transition: opacity var(--t) var(--ease); pointer-events: none;
+}
+.touch-clips .card__media.is-playing::after { opacity: 0; }
+.touch-clips .fcard__play { opacity: 1; transform: none; }
+
 /* Project subgroup header inside the Level Design gallery */
 .proj-head { margin: clamp(2.2rem, 5vw, 3.4rem) 0 1.4rem; }
 .proj-head:first-child { margin-top: 0; }
@@ -834,7 +848,6 @@ body.cursor-on, body.cursor-on * { cursor: none; }
    ===================================================================== */
 @media (max-width: 1000px) {
   .featured { grid-template-columns: 1fr 1fr; }
-  .fcard:last-child { display: none; }            /* keep featured tidy at 2-up */
   .caps { grid-template-columns: repeat(2, 1fr); }
   .cap:nth-child(3) { border-left: 0; }
   .cap:nth-child(odd) { border-left: 0; }
@@ -865,7 +878,6 @@ body.cursor-on, body.cursor-on * { cursor: none; }
 
 @media (max-width: 620px) {
   .featured { grid-template-columns: 1fr; }
-  .fcard:last-child { display: block; }
   .fcard__media { aspect-ratio: 4 / 3; }
   .grid { grid-template-columns: 1fr; }
   .caps { grid-template-columns: 1fr; }
