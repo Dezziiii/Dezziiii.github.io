@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact — Ronnie Tyler Everage</title>
+  <meta name="description" content="Contact Tyler — write a quick letter about a role, a collaboration, or just to say hello." />
+  <meta name="theme-color" content="#F4ECE0" />
+
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (!t) t = "dark";
+        if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+        if (sessionStorage.getItem("introSeen")) document.documentElement.classList.add("vt-nav");
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Pinyon+Script&family=Sometype+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body id="top">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="pcurtain" data-curtain aria-hidden="true"><span class="pcurtain__mark">RTE<span class="nav__dot">&reg;</span></span></div>
+  <div class="cursor" aria-hidden="true"><span class="cursor__label"></span></div>
+  <div class="blobs" aria-hidden="true">
+    <span class="blob blob--1"></span><span class="blob blob--2"></span><span class="blob blob--3"></span>
+  </div>
+
+  <div class="ticker" aria-hidden="true">
+    <span class="ticker__item"><span class="ticker__k">TIME</span><span class="ticker__v" data-clock>--:--:--</span></span>
+    <span class="ticker__item ticker__hide-sm"><span class="ticker__k">LOC</span><span class="ticker__v">FOUNTAIN, CO</span></span>
+    <span class="ticker__item"><span class="ticker__live"></span><span class="ticker__v">OPEN · 2027 ROLES</span></span>
+    <span class="ticker__spacer"></span>
+    <span class="ticker__item ticker__hide-sm"><span class="ticker__k">FOCUS</span><span class="ticker__v">LEVEL DESIGN</span></span>
+    <span class="ticker__item"><span class="ticker__k">BOOKING</span><span class="ticker__v">2027</span></span>
+  </div>
+
+  <header class="nav" data-nav>
+    <a class="nav__brand" href="index.html" data-magnetic><span class="nav__brand-full">Ronnie Tyler Everage</span><span class="nav__brand-short">RTE</span><span class="nav__dot">®</span></a>
+    <nav class="nav__links" id="primary-nav" aria-label="Primary">
+      <a href="index.html#work" data-link><span class="nav__idx">01</span> <span data-scramble>Work</span></a>
+      <a href="writing.html" data-link><span class="nav__idx">02</span> <span data-scramble>Writing</span></a>
+      <a href="contact.html" class="is-active" aria-current="page" data-link><span class="nav__idx">03</span> <span data-scramble>Contact</span></a>
+    </nav>
+    <div class="nav__right">
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle light/dark theme">
+        <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="nav__cta" href="#main" data-magnetic>Let's talk</a>
+      <button class="nav__toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav"><span></span><span></span></button>
+    </div>
+  </header>
+
+  <div class="smooth" id="smooth" data-smooth>
+  <main class="page" id="main">
+    <div class="container">
+      <header class="page__head">
+        <p class="page__eyebrow" data-reveal><a class="page__back" href="index.html">← Home</a> &nbsp;/&nbsp; (03) Contact</p>
+        <h1 class="page-title" data-reveal>Contact<span class="tt">.</span></h1>
+      </header>
+
+      <div class="letter-grid">
+        <!-- The letter -->
+        <form class="letter" data-letter data-reveal>
+          <div class="letter__meta">
+            <span>R. T. EVERAGE :: INTAKE</span>
+            <span data-date>— — —</span>
+          </div>
+
+          <p class="letter__salut">Dear Tyler,</p>
+
+          <div class="lrow">
+            <span class="lrow__k">Re ::</span>
+            <div class="chips" data-chips>
+              <button type="button" class="chip is-on" data-subject="A new role">A new role</button>
+              <button type="button" class="chip" data-subject="A collaboration">A collaboration</button>
+              <button type="button" class="chip" data-subject="Just a hello">Just a hello</button>
+            </div>
+          </div>
+
+          <div class="lrow">
+            <span class="lrow__k">From ::</span>
+            <input class="linput" type="text" data-name placeholder="your name" autocomplete="name" />
+          </div>
+
+          <div class="lrow">
+            <span class="lrow__k">Mail ::</span>
+            <input class="linput" type="email" data-from-email placeholder="you@email.com" autocomplete="email" />
+          </div>
+
+          <div class="lrow" style="align-items: flex-start">
+            <span class="lrow__k">Note ::</span>
+            <textarea class="linput" data-note rows="3" placeholder="a line or two about what you have in mind…" style="resize: vertical; min-height: 4.5rem"></textarea>
+          </div>
+
+          <div class="sign">
+            <span class="sign__label">Sincerely — sign here ::</span>
+            <div class="sign__pad" data-sign>
+              <span class="sign__hint">with your finger, mouse or pen</span>
+              <canvas></canvas>
+            </div>
+            <button type="button" class="sign__clear" data-sign-clear>Clear signature</button>
+          </div>
+
+          <div class="letter__actions">
+            <button type="button" class="btn btn--solid" data-send data-email="everage.ronnie.t@gmail.com" data-magnetic>Send it ↗</button>
+            <button type="button" class="btn btn--ghost" data-copy="everage.ronnie.t@gmail.com" data-magnetic>
+              <span class="contact__email-hint" style="font-family:var(--font-mono)">Copy email</span>
+            </button>
+            <span class="letter__note">One reply · no newsletter</span>
+          </div>
+        </form>
+
+        <!-- The receipt stub -->
+        <aside class="receipt" data-reveal>
+          <div class="receipt__head">
+            <span class="receipt__brand">R.T. EVERAGE</span>
+            <span class="receipt__no">No. 01</span>
+          </div>
+          <div class="receipt__row"><span>Re</span><span data-r-subject>A new role</span></div>
+          <div class="receipt__row"><span>From</span><span data-r-from>——</span></div>
+          <div class="receipt__row"><span>Received</span><span data-r-date>——</span></div>
+          <div class="receipt__row"><span>Reply by</span><span>~ 2 days</span></div>
+          <div class="receipt__row"><span>Status</span><span data-r-status>Being written</span></div>
+          <div class="receipt__row"><span>File under</span><span>New business</span></div>
+          <div class="receipt__tear">✂ — — — Keep this half — — —</div>
+
+          <p class="letter__note" style="display:block; margin-top:1.3rem; text-transform:none; line-height:1.5">
+            Prefer the old way? Reach me straight at
+            <a class="accent" href="mailto:everage.ronnie.t@gmail.com">everage.ronnie.t@gmail.com</a>,
+            or find me on
+            <a class="accent" href="https://www.instagram.com/tylereverage2022" target="_blank" rel="noopener">Instagram</a> and <a class="accent" href="https://www.linkedin.com/in/ronnieeverage" target="_blank" rel="noopener">LinkedIn</a>.
+          </p>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__top">
+        <a class="footer__brand" href="index.html">Ronnie Tyler Everage<span class="nav__dot">®</span></a>
+        <p class="footer__tag">Worlds worth getting lost in.<br />Levels you can read at a glance.</p>
+      </div>
+      <div class="footer__cols">
+        <div class="footer__col"><span class="footer__label">Based in</span><p>Fountain, CO · USA</p></div>
+        <div class="footer__col"><span class="footer__label">Email</span><p><a href="mailto:everage.ronnie.t@gmail.com" data-magnetic>everage.ronnie.t@gmail.com</a></p></div>
+        <div class="footer__col"><span class="footer__label">Social</span>
+          <ul>
+            <li><a href="https://www.instagram.com/tylereverage2022" target="_blank" rel="noopener" data-magnetic>Instagram</a></li>
+            <li><a href="https://www.linkedin.com/in/ronnieeverage" target="_blank" rel="noopener" data-magnetic>LinkedIn</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>© <span data-year>2026</span> Ronnie Tyler Everage. All rights reserved.</span>
+        <span class="footer__built">Designed &amp; built with care</span>
+      </div>
+    </div>
+  </footer>
+  </div><!-- /.smooth -->
+
+  <div class="toast" data-toast></div>
+  <script src="js/main.js" defer></script>
+</body>
+</html>

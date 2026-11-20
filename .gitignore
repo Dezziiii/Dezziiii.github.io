@@ -1,0 +1,8 @@
+# Local dev tooling — not part of the published site
+.claude/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
