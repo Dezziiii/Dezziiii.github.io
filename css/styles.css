@@ -867,8 +867,11 @@ body.cursor-on, body.cursor-on * { cursor: none; }
   .footer__tag { text-align: left; }
 }
 
-@media (max-width: 560px) {
-  /* collapse the long name to a monogram so centered tabs always fit */
+@media (max-width: 680px) {
+  /* Collapse the long name to a monogram well before it can reach the
+     centered tabs — the full "Ronnie Tyler Everage" starts touching the
+     Work link around 560px (e.g. a Z Fold opened in portrait), so swap to
+     "RTE" with clearance to spare. */
   .nav__brand-full { display: none; }
   .nav__brand-short { display: inline; }
   .nav__brand { font-size: 1.15rem; letter-spacing: 0.03em; }
