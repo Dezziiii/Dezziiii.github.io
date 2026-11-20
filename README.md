@@ -5,7 +5,7 @@ next), built with **plain HTML, CSS, and JavaScript** — no frameworks, no buil
 no dependencies. (You do **not** need Wix — host these files directly and you keep the
 exact look and every animation. See "Publish it" below.)
 
-The **home page structure is modeled on [ref.digital](https://ref.digital)** (statement
+The **home page structure is modeled based on [ref.digital](https://ref.digital)** (statement
 hero, selected-work cards, a 4-card "What I do" row, structured footer). The **Writing
 and Contact pages** take cues from [carterogunsola.com](https://carterogunsola.com) — a
 monospace status ticker, a writing page, and a letter-style contact with a
