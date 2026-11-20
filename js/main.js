@@ -220,6 +220,32 @@
   onNavScroll();
   window.addEventListener("scroll", onNavScroll, { passive: true });
 
+  /* ---------- Nav: collapse the full name to the monogram when it would
+     crowd the centered tabs. Measured live (not a guessed breakpoint), so it
+     is correct on any device/font — e.g. a foldable opened in portrait. ---- */
+  (function () {
+    const brand = nav.querySelector(".nav__brand");
+    const links = nav.querySelector(".nav__links");
+    const right = nav.querySelector(".nav__right");
+    if (!brand || !links) return;
+    const PAD = 22; // minimum clearance we insist on, in px
+    const fitBrand = () => {
+      // Measure with the full name shown; links are centre-anchored so their
+      // position doesn't shift when the brand collapses.
+      nav.classList.remove("brand-collapsed");
+      const b = brand.getBoundingClientRect();
+      const l = links.getBoundingClientRect();
+      const r = right ? right.getBoundingClientRect() : null;
+      const hitsTabsLeft = b.right + PAD > l.left;
+      const hitsRight = r ? l.right + PAD > r.left : false;
+      if (hitsTabsLeft || hitsRight) nav.classList.add("brand-collapsed");
+    };
+    fitBrand();
+    window.addEventListener("resize", fitBrand, { passive: true });
+    window.addEventListener("orientationchange", fitBrand);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitBrand);
+  })();
+
   /* ---------- Nav: mobile menu ---------- */
   const toggle = $(".nav__toggle");
   if (toggle) {

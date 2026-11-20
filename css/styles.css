@@ -269,6 +269,11 @@ body.cursor-on, body.cursor-on * { cursor: none; }
 }
 .nav__brand { font-size: 1.3rem; font-weight: 600; letter-spacing: -0.02em; white-space: nowrap; }
 .nav__brand-short { display: none; }
+/* JS adds .brand-collapsed when the full name would crowd the centered tabs
+   (measured live, so it works on any device/font, not a guessed width). */
+.nav.brand-collapsed .nav__brand-full { display: none; }
+.nav.brand-collapsed .nav__brand-short { display: inline; }
+.nav.brand-collapsed .nav__brand { font-size: 1.15rem; letter-spacing: 0.03em; }
 .nav__dot { color: var(--accent); font-size: 0.7em; vertical-align: super; }
 
 .nav__links { display: flex; gap: 1.8rem; position: absolute; left: 50%; transform: translateX(-50%); }
@@ -867,11 +872,9 @@ body.cursor-on, body.cursor-on * { cursor: none; }
   .footer__tag { text-align: left; }
 }
 
-@media (max-width: 680px) {
-  /* Collapse the long name to a monogram well before it can reach the
-     centered tabs — the full "Ronnie Tyler Everage" starts touching the
-     Work link around 560px (e.g. a Z Fold opened in portrait), so swap to
-     "RTE" with clearance to spare. */
+@media (max-width: 560px) {
+  /* No-JS fallback: collapse to the monogram on phones. The live JS guard
+     (.brand-collapsed) handles every other width precisely. */
   .nav__brand-full { display: none; }
   .nav__brand-short { display: inline; }
   .nav__brand { font-size: 1.15rem; letter-spacing: 0.03em; }
